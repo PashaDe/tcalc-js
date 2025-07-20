@@ -38,6 +38,27 @@
             text-align: left;
         }
         
+        .tcalc-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            position: relative;
+        }
+        .tcalc-header-logo {
+            flex: 0 0 auto;
+        }
+        .tcalc-header-title {
+            flex: 1 1 0;
+            text-align: center;
+        }
+        .tcalc-header-spacer {
+            flex: 0 0 auto;
+            width: 54px;
+            height: 1px;
+            /* для симметрии с логотипом */
+        }
+        
         .tcalc-header h1 {
             margin: 0 0 10px 0;
             font-size: 28px;
@@ -819,12 +840,15 @@
 <body>
     <div class="tcalc-container" id="tcalc-calculator">
         <div class="tcalc-header" id="tcalc-header">
-            <div style="display: flex; align-items: center; justify-content: flex-start; gap: 18px;">
-                <img src="https://raw.githubusercontent.com/PashaDe/tcalc-js/main/logoplit.png" alt="Логотип" style="height: 54px; width: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: #fff; filter: brightness(1.7) grayscale(0.2);" loading="lazy">
-                <div>
+            <div class="tcalc-header-content">
+                <div class="tcalc-header-logo">
+                    <img src="https://raw.githubusercontent.com/PashaDe/tcalc-js/main/logoplit.png" alt="Логотип" style="height: 54px; width: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: #fff; filter: brightness(1.7) grayscale(0.2);" loading="lazy">
+                </div>
+                <div class="tcalc-header-title">
                     <h1 style="margin-bottom: 6px;">Калькулятор плитки "Новый город"</h1>
                     <p style="margin: 0; opacity: 0.9; font-size: 16px;">Нарисуйте границы участка и заполните плиткой</p>
                 </div>
+                <div class="tcalc-header-spacer"></div>
             </div>
         </div>
         
