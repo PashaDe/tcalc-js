@@ -1,0 +1,2913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор плитки Zero-блок</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: #f5f5f5;
+            /* height: 100vh; */ /* убрать */
+            /* overflow: hidden; */ /* убрать */
+        }
+        
+        .tcalc-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            /* height: 100vh; */ /* убрать */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .tcalc-header {
+            background: linear-gradient(135deg, #333333 0%, #555555 100%);
+            color: #fff;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .tcalc-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .tcalc-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .tcalc-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 0;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .tcalc-sidebar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-right: 1px solid #e9ecef;
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+        }
+        
+        .tcalc-main {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .tcalc-section {
+            margin-bottom: 15px;
+        }
+        
+        .tcalc-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333333;
+            font-weight: 600;
+        }
+        
+        .tcalc-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+        
+        .tcalc-upload:hover {
+            border-color: #ff6600;
+            background: #fff8f0;
+        }
+        
+        .tcalc-upload input[type="file"] {
+            display: none;
+        }
+        
+        .tcalc-upload-icon {
+            font-size: 24px;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .tcalc-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .tcalc-tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .tcalc-tool-btn:hover {
+            border-color: #ff6600;
+            box-shadow: 0 2px 8px rgba(255,102,0,0.15);
+        }
+        
+        .tcalc-tool-btn.active {
+            border-color: #ff6600;
+            background: #fff8f0;
+            color: #ff6600;
+        }
+        
+        .tcalc-tool-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .tcalc-tile-palette {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .tcalc-tile-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-tile-option:hover {
+            border-color: #ff6600;
+            box-shadow: 0 2px 8px rgba(255,102,0,0.15);
+        }
+        
+        .tcalc-tile-option.active {
+            border-color: #ff6600;
+            background: #fff8f0;
+        }
+        
+        .tcalc-tile-preview {
+            width: 40px;
+            height: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(45deg, #a52a2a 25%, transparent 25%), 
+                        linear-gradient(-45deg, #a52a2a 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #a52a2a 75%), 
+                        linear-gradient(-45deg, transparent 75%, #a52a2a 75%);
+            background-size: 4px 4px;
+            background-position: 0 0, 0 2px, 2px -2px, -2px 0px;
+        }
+        
+        .tcalc-tile-info {
+            flex: 1;
+        }
+        
+        .tcalc-tile-name {
+            font-weight: 600;
+            color: #333333;
+            font-size: 14px;
+        }
+        
+        .tcalc-tile-size {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .tcalc-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .tcalc-edit-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .tcalc-edit-tools h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .tcalc-edit-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tcalc-btn-small {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-btn-small:hover {
+            transform: translateY(-1px);
+        }
+        
+        .tcalc-color-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .tcalc-color-picker input[type="color"] {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .tcalc-stats {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .tcalc-stats h4 {
+            margin: 0 0 10px 0;
+            color: #2d5a2d;
+            font-size: 14px;
+        }
+        
+        .tcalc-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .tcalc-stat-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .tcalc-stat-label {
+            color: #555;
+        }
+        
+        .tcalc-stat-value {
+            font-weight: 600;
+            color: #2d5a2d;
+        }
+        
+        .tcalc-btn {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        
+        .tcalc-btn-primary {
+            background: #ff6600;
+            color: #fff;
+        }
+        
+        .tcalc-btn-primary:hover {
+            background: #e55a00;
+        }
+        
+        .tcalc-btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+        
+        .tcalc-btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .tcalc-btn-danger {
+            background: #dc3545;
+            color: #fff;
+        }
+        
+        .tcalc-btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .tcalc-btn-success {
+            background: #333333;
+            color: #fff;
+        }
+        
+        .tcalc-btn-success:hover {
+            background: #555555;
+        }
+        
+        .tcalc-btn:disabled {
+            background: #6c757d !important;
+            color: #fff !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .tcalc-canvas-container {
+            flex: 1;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+            position: relative;
+            min-height: 400px;
+            max-height: 500px;
+        }
+        
+        .tcalc-size-menu {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #ff6600;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1001;
+            min-width: 200px;
+            max-width: 300px;
+            min-height: 180px;
+            max-height: 400px;
+            display: none;
+            cursor: move;
+            user-select: none;
+            resize: none;
+            overflow: hidden;
+        }
+        
+        .tcalc-size-menu-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 15px;
+            height: 15px;
+            background: #ff6600;
+            border-radius: 0 0 0 8px;
+            cursor: nw-resize;
+            z-index: 1002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .tcalc-size-menu-resize-handle:hover {
+            background: #e55a00;
+        }
+        
+        .tcalc-size-menu h4 {
+            margin: 0 0 12px 0;
+            color: #333333;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            position: relative;
+        }
+        
+        .tcalc-size-menu-close {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #ff6600;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #ff6600;
+            font-weight: bold;
+            z-index: 1003;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-size-menu-close:hover {
+            background: #ff6600;
+            color: #fff;
+        }
+        
+        .tcalc-size-menu-delete {
+            position: absolute;
+            top: 20px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #dc3545;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #dc3545;
+            font-weight: bold;
+            z-index: 1003;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-size-menu-delete:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+        
+        .tcalc-size-input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 6px;
+            /* Убеждаемся, что все группы имеют одинаковую структуру */
+            width: 100%;
+            min-width: 0;
+            justify-content: space-between;
+        }
+        
+        .tcalc-size-label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 600;
+            min-width: 60px;
+            /* Убеждаемся, что все метки имеют одинаковую ширину */
+            flex-shrink: 0;
+            flex: 0 0 60px;
+        }
+        
+        .tcalc-size-input {
+            flex: 0 0 80px;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+            /* Убеждаемся, что все поля имеют одинаковый размер */
+            min-width: 60px;
+            max-width: 80px;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .tcalc-size-input[readonly] {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            cursor: default;
+            /* Убеждаемся, что readonly не влияет на размер */
+            width: auto;
+            min-width: 0;
+            max-width: none;
+        }
+        
+        .tcalc-size-input:focus {
+            outline: none;
+            border-color: #ff6600;
+            box-shadow: 0 0 0 2px rgba(255,102,0,0.2);
+        }
+        
+        .tcalc-size-axis {
+            font-size: 10px;
+            color: #888;
+            font-style: italic;
+            /* Убеждаемся, что все оси имеют одинаковую ширину */
+            flex-shrink: 0;
+            min-width: 35px;
+            flex: 0 0 35px;
+            text-align: right;
+        }
+        
+        .tcalc-size-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tcalc-size-btn {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-size-btn-apply {
+            background: #ff6600;
+            color: #fff;
+        }
+        
+        .tcalc-size-btn-apply:hover {
+            background: #e55a00;
+        }
+        
+        .tcalc-size-btn-cancel {
+            background: #6c757d;
+            color: #fff;
+        }
+        
+        .tcalc-size-btn-cancel:hover {
+            background: #545b62;
+        }
+        
+        .tcalc-zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 5px;
+            z-index: 1000;
+        }
+        
+        .tcalc-zoom-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #dee2e6;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .tcalc-zoom-btn:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+        }
+        
+        .tcalc-zoom-level {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            min-width: 45px;
+            text-align: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .tcalc-zoom-level:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .tcalc-zoom-input {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            min-width: 45px;
+            text-align: center;
+            border: 1px solid #007bff;
+            border-radius: 3px;
+            padding: 2px 4px;
+            background: #fff;
+            outline: none;
+        }
+        
+        .tcalc-rotation-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ff6600;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ff6600;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tcalc-cursor-angle {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 10000;
+            display: none;
+            white-space: nowrap;
+        }
+        
+        .tcalc-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tcalc-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .tcalc-results h3 {
+            margin: 0 0 15px 0;
+            color: #333333;
+            font-size: 18px;
+        }
+        
+        .tcalc-tile-counts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .tcalc-count-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .tcalc-count-label {
+            font-weight: 600;
+            color: #333333;
+        }
+        
+        .tcalc-count-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ff6600;
+        }
+        
+        .tcalc-total {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #333333 0%, #555555 100%);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .tcalc-instructions {
+            background: #fff8f0;
+            border: 1px solid #ffcc99;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .tcalc-instructions h4 {
+            margin: 0 0 8px 0;
+            color: #ff6600;
+            font-size: 14px;
+        }
+        
+        .tcalc-instructions ol {
+            margin: 0;
+            padding-left: 16px;
+            color: #424242;
+            font-size: 12px;
+        }
+        
+        .tcalc-instructions li {
+            margin-bottom: 6px;
+        }
+        
+        .tcalc-status {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .tcalc-progress {
+            background: #fff8f0;
+            border: 1px solid #ffcc99;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .tcalc-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .tcalc-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6600, #ff9933);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .tcalc-progress-text {
+            font-size: 12px;
+            color: #ff6600;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .tcalc-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .tcalc-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .tcalc-tile-counts {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Автоматическая прокрутка к калькулятору при наличии якоря */
+        html:target {
+            scroll-margin-top: 20px;
+        }
+        
+        #tcalc-calculator:target {
+            scroll-margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tcalc-container" id="tcalc-calculator">
+        <div class="tcalc-header" id="tcalc-header">
+            <h1>Калькулятор плитки "Новый город"</h1>
+            <p>Нарисуйте границы участка и заполните плиткой</p>
+        </div>
+        
+        <div class="tcalc-content">
+            <div class="tcalc-sidebar">
+                <div class="tcalc-section">
+                    <h3>Загрузка плана</h3>
+                    <div class="tcalc-upload" onclick="document.getElementById('tcalc-plan-upload').click()">
+                        <div class="tcalc-upload-icon">????</div>
+                        <div>Загрузить план участка</div>
+                        <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">JPG, PNG до 5MB</div>
+                    </div>
+                    <input type="file" id="tcalc-plan-upload" accept="image/*" onchange="loadPlan(event)">
+                </div>
+                
+                <div class="tcalc-section">
+                    <h3>Инструменты рисования</h3>
+                    <div class="tcalc-tools">
+                        <div class="tcalc-tool-btn active" data-tool="ruler" onclick="selectTool('ruler')">
+                            <div class="tcalc-tool-icon">⬜</div>
+                            <div>Площадка (прямоугольник)</div>
+                        </div>
+                        <div class="tcalc-tool-btn" data-tool="eraser" onclick="selectTool('eraser')">
+                            <div class="tcalc-tool-icon">❌</div>
+                            <div>Ластик (удаление)</div>
+                        </div>
+                    </div>
+                    <div class="tcalc-status" id="tcalc-status">
+                        Выберите инструмент и нарисуйте границы участка
+                    </div>
+                    <div class="tcalc-progress" id="tcalc-progress" style="display: none;">
+                        <div class="tcalc-progress-bar">
+                            <div class="tcalc-progress-fill" id="tcalc-progress-fill"></div>
+                        </div>
+                        <div class="tcalc-progress-text" id="tcalc-progress-text">Заполнение участка...</div>
+                    </div>
+                </div>
+                
+
+                
+
+                
+                <div class="tcalc-section">
+                    <h3>Статистика участка</h3>
+                    <div class="tcalc-stats">
+                        <h4>Площадь и размеры:</h4>
+                        <div class="tcalc-stats-grid">
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Площадь участка:</span>
+                                <span class="tcalc-stat-value" id="tcalc-area">0 м²</span>
+                            </div>
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Периметр:</span>
+                                <span class="tcalc-stat-value" id="tcalc-perimeter">0 м</span>
+                            </div>
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Длина участка:</span>
+                                <span class="tcalc-stat-value" id="tcalc-length">0 м</span>
+                            </div>
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Ширина участка:</span>
+                                <span class="tcalc-stat-value" id="tcalc-width">0 м</span>
+                            </div>
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Длина с плиткой:</span>
+                                <span class="tcalc-stat-value" id="tcalc-tiles-length">0 м</span>
+                            </div>
+                            <div class="tcalc-stat-item">
+                                <span class="tcalc-stat-label">Ширина с плиткой:</span>
+                                <span class="tcalc-stat-value" id="tcalc-tiles-width">0 м</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tcalc-section">
+                    <h3>Управление</h3>
+                    <div class="tcalc-controls">
+                        <button class="tcalc-btn tcalc-btn-success" onclick="fillAreaWithTiles()">Заполнить участок плиткой</button>
+                        <button class="tcalc-btn tcalc-btn-primary" onclick="clearTiles()">Очистить плитки</button>
+                        <button class="tcalc-btn tcalc-btn-secondary" onclick="clearCanvas()">Очистить всё</button>
+                        <button class="tcalc-btn tcalc-btn-secondary" onclick="exportResults()">Экспорт PDF</button>
+                        <button class="tcalc-btn tcalc-btn-secondary" onclick="saveProject()">Сохранить</button>
+                        <button class="tcalc-btn tcalc-btn-secondary" onclick="loadProject()">Загрузить</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tcalc-main">
+                                    <div class="tcalc-instructions">
+                        <h4>Инструкция:</h4>
+                        <ol>
+                            <li>Загрузите план участка (опционально)</li>
+                            <li>Выберите инструмент: "Линейка" для прямоугольника или "Карандаш" для рисования от руки</li>
+                            <li>Нарисуйте границы участка на плане</li>
+                            <li>Нажмите "Заполнить участок плиткой" для автоматического заполнения всеми размерами</li>
+                        </ol>
+                    </div>
+                
+                <div class="tcalc-canvas-container">
+                    <div class="tcalc-zoom-controls">
+                        <button class="tcalc-zoom-btn" onclick="zoomIn()" title="Приблизить">+</button>
+                        <span class="tcalc-zoom-level" id="tcalc-zoom-level" onclick="enableZoomInput()" title="Кликните для ввода масштаба">100%</span>
+                        <button class="tcalc-zoom-btn" onclick="zoomOut()" title="Отдалить">−</button>
+                        <button class="tcalc-zoom-btn" onclick="resetZoom()" title="Сбросить масштаб">⟲</button>
+                    </div>
+                    
+                    <div class="tcalc-rotation-indicator" id="tcalc-rotation-indicator">
+                        Угол поворота: <span id="tcalc-rotation-angle">0°</span>
+                    </div>
+                    
+                    <div class="tcalc-cursor-angle" id="tcalc-cursor-angle">
+                        Угол: <span id="tcalc-cursor-angle-value">0°</span>
+                    </div>
+                    
+                    <div class="tcalc-size-menu" id="tcalc-size-menu">
+                        <h4>Введите размеры площадки</h4>
+                        <div class="tcalc-size-menu-close" onclick="hideSizeMenu()" title="Закрыть меню">×</div>
+                        <div class="tcalc-size-menu-delete" onclick="deleteCurrentBoundary()" title="Удалить площадку">×</div>
+                        <div class="tcalc-size-input-group">
+                            <span class="tcalc-size-label">длина</span>
+                            <input type="number" class="tcalc-size-input" id="tcalc-length-input" step="0.01" min="0.1" max="100">
+                            <span class="tcalc-size-axis">(ось Y)</span>
+                        </div>
+                        <div class="tcalc-size-input-group">
+                            <span class="tcalc-size-label">ширина</span>
+                            <input type="number" class="tcalc-size-input" id="tcalc-width-input" step="0.01" min="0.1" max="100">
+                            <span class="tcalc-size-axis">(ось X)</span>
+                        </div>
+                        <div class="tcalc-size-input-group">
+                            <span class="tcalc-size-label">площадь</span>
+                            <input type="number" class="tcalc-size-input" id="tcalc-area-input" readonly step="0.01">
+                            <span class="tcalc-size-axis">(м²)</span>
+                        </div>
+                        <div class="tcalc-size-buttons">
+                            <button class="tcalc-size-btn tcalc-size-btn-apply" onclick="applySizeToBoundary()">Применить</button>
+                            <button class="tcalc-size-btn tcalc-size-btn-cancel" onclick="hideSizeMenu()">Отмена</button>
+                        </div>
+                        <div class="tcalc-size-menu-resize-handle" title="Изменить размер">↖</div>
+                    </div>
+                    
+                    <canvas id="tcalc-canvas" class="tcalc-canvas"></canvas>
+                </div>
+                
+                <div class="tcalc-results">
+                    <h3>Результаты расчета</h3>
+                    <div class="tcalc-tile-counts">
+                        <div class="tcalc-count-item">
+                            <span class="tcalc-count-label">Большая плитка (330×220):</span>
+                            <span class="tcalc-count-value" id="tcalc-count-large">0</span>
+                        </div>
+                        <div class="tcalc-count-item">
+                            <span class="tcalc-count-label">Средняя плитка (220×220):</span>
+                            <span class="tcalc-count-value" id="tcalc-count-medium">0</span>
+                        </div>
+                        <div class="tcalc-count-item">
+                            <span class="tcalc-count-label">Малая плитка (110×220):</span>
+                            <span class="tcalc-count-value" id="tcalc-count-small">0</span>
+                        </div>
+                    </div>
+                    <div class="tcalc-total">
+                        Общее количество плиток: <span id="tcalc-total-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TILE_CONFIG = {
+            'large': { 
+                width: 3.3,
+                height: 2.2,
+                name: 'Большая',
+                price: 250 
+            },
+            'medium': { 
+                width: 2.2,
+                height: 2.2,
+                name: 'Средняя',
+                price: 200 
+            },
+            'small': { 
+                width: 1.1,
+                height: 2.2,
+                name: 'Малая',
+                price: 150 
+            }
+        };
+
+        const TILE_GRADIENT = 'linear-gradient(135deg, #ffffff 0%, #cccccc 100%)';
+
+        let canvas;
+        let currentTool = 'ruler';
+        let currentTileType = 'mixed';
+        let isDrawing = false;
+        let startPoint = null;
+        let drawingPath = [];
+        let tileCounts = {
+            'large': 0,
+            'medium': 0,
+            'small': 0
+        };
+        
+        let currentTileColor = '#a52a2a';
+        
+        let currentZoom = 1;
+        let isPanning = false;
+        let lastPanPoint = null;
+        
+        let currentEditingBoundary = null;
+        
+        let isSizeMenuDragging = false;
+        let sizeMenuDragStart = null;
+        let sizeMenuOriginalPosition = null;
+        
+        let isSizeMenuResizing = false;
+        let sizeMenuResizeStart = null;
+        let sizeMenuOriginalSize = null;
+
+        function snapToGrid(value) {
+            return Math.round(value / 1.1) * 1.1;
+        }
+
+        function getBoundaryBounds(boundary) {
+            if (boundary.type === 'rect') {
+                const currentWidth = boundary.width * (boundary.scaleX || 1);
+                const currentHeight = boundary.height * (boundary.scaleY || 1);
+                
+                if (boundary.angle && Math.abs(boundary.angle) > 0.1) {
+                    const center = boundary.getCenterPoint();
+                    const angle = boundary.angle * Math.PI / 180;
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    
+                    const halfWidth = currentWidth / 2;
+                    const halfHeight = currentHeight / 2;
+                    
+                    const corners = [
+                        { x: -halfWidth, y: -halfHeight },
+                        { x: halfWidth, y: -halfHeight },
+                        { x: halfWidth, y: halfHeight },
+                        { x: -halfWidth, y: halfHeight }
+                    ];
+                    
+                    const rotatedCorners = corners.map(corner => ({
+                        x: center.x + corner.x * cos - corner.y * sin,
+                        y: center.y + corner.x * sin + corner.y * cos
+                    }));
+                    
+                    const xs = rotatedCorners.map(c => c.x);
+                    const ys = rotatedCorners.map(c => c.y);
+                    
+                    return {
+                        left: Math.min(...xs),
+                        top: Math.min(...ys),
+                        right: Math.max(...xs),
+                        bottom: Math.max(...ys),
+                        rotated: true,
+                        angle: boundary.angle,
+                        center: center,
+                        corners: rotatedCorners,
+                        originalWidth: currentWidth,
+                        originalHeight: currentHeight
+                    };
+                } else {
+                    return {
+                        left: boundary.left,
+                        top: boundary.top,
+                        right: boundary.left + currentWidth,
+                        bottom: boundary.top + currentHeight,
+                        rotated: false
+                    };
+                }
+            }
+            return null;
+        }
+
+        function isTileInBoundary(tile, boundaryBounds) {
+            if (!boundaryBounds) return false;
+            
+            if (!boundaryBounds.rotated) {
+                const tileLeft = tile.left;
+                const tileTop = tile.top;
+                const tileRight = tile.left + tile.width;
+                const tileBottom = tile.top + tile.height;
+                
+                return tileLeft >= boundaryBounds.left && 
+                       tileTop >= boundaryBounds.top && 
+                       tileRight <= boundaryBounds.right && 
+                       tileBottom <= boundaryBounds.bottom;
+            } else {
+                const tileCenter = {
+                    x: tile.left + tile.width / 2,
+                    y: tile.top + tile.height / 2
+                };
+                
+                return isPointInRotatedRectangle(tileCenter, boundaryBounds);
+            }
+        }
+        
+        function isPointInRotatedRectangle(point, bounds) {
+            if (!bounds.rotated || !bounds.center) return false;
+            
+            const angle = -bounds.angle * Math.PI / 180;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            
+            const dx = point.x - bounds.center.x;
+            const dy = point.y - bounds.center.y;
+            
+            const rotatedX = dx * cos - dy * sin;
+            const rotatedY = dx * sin + dy * cos;
+            
+            const halfWidth = bounds.originalWidth / 2;
+            const halfHeight = bounds.originalHeight / 2;
+            
+            return Math.abs(rotatedX) <= halfWidth && Math.abs(rotatedY) <= halfHeight;
+        }
+        
+        function zoomIn() {
+            if (currentZoom < 7) {
+                const oldZoom = currentZoom;
+                currentZoom *= 1.2;
+                
+                canvas.setZoom(currentZoom);
+                
+                let centerX, centerY;
+                
+                if (canvas.lastMouseEvent) {
+                    const pointer = canvas.getPointer(canvas.lastMouseEvent);
+                    centerX = pointer.x;
+                    centerY = pointer.y;
+                } else {
+                    centerX = canvas.getWidth() / 2;
+                    centerY = canvas.getHeight() / 2;
+                }
+                
+                const vpt = canvas.viewportTransform;
+                const zoomRatio = currentZoom / oldZoom;
+                
+                vpt[4] = centerX - (centerX - vpt[4]) * zoomRatio;
+                vpt[5] = centerY - (centerY - vpt[5]) * zoomRatio;
+                
+                updateZoom();
+            }
+        }
+        
+        function zoomOut() {
+            if (currentZoom > 1) {
+                const oldZoom = currentZoom;
+                currentZoom /= 1.2;
+                
+                canvas.setZoom(currentZoom);
+                
+                let centerX, centerY;
+                
+                if (canvas.lastMouseEvent) {
+                    const pointer = canvas.getPointer(canvas.lastMouseEvent);
+                    centerX = pointer.x;
+                    centerY = pointer.y;
+                } else {
+                    centerX = canvas.getWidth() / 2;
+                    centerY = canvas.getHeight() / 2;
+                }
+                
+                const vpt = canvas.viewportTransform;
+                const zoomRatio = currentZoom / oldZoom;
+                
+                vpt[4] = centerX - (centerX - vpt[4]) * zoomRatio;
+                vpt[5] = centerY - (centerY - vpt[5]) * zoomRatio;
+                
+                updateZoom();
+            }
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            // Устанавливаем масштаб 100%
+            canvas.setZoom(1);
+            // Сбрасываем viewport в центр
+            const vpt = canvas.viewportTransform;
+            vpt[4] = 0;
+            vpt[5] = 0;
+            canvas.setViewportTransform(vpt);
+            updateZoom();
+        }
+        
+        function updateZoom() {
+            // Обновляем масштаб canvas
+            canvas.setZoom(currentZoom);
+            
+            // Применяем viewport transform
+            canvas.setViewportTransform(canvas.viewportTransform);
+            
+            // Обновляем отображение уровня масштаба
+            const zoomLevelElement = document.getElementById('tcalc-zoom-level');
+            if (zoomLevelElement && !zoomLevelElement.classList.contains('tcalc-zoom-input')) {
+                zoomLevelElement.textContent = Math.round(currentZoom * 100) + '%';
+            }
+            
+            // Включаем/выключаем функцию перетаскивания
+            if (currentZoom > 1) {
+                enablePanning();
+            } else {
+                disablePanning();
+            }
+            
+            canvas.renderAll();
+        }
+        
+        function enablePanning() {
+            if (currentTool !== 'eraser') {
+                canvas.defaultCursor = 'grab';
+            }
+            canvas.selection = false;
+        }
+        
+        function disablePanning() {
+            if (currentTool === 'ruler') {
+                canvas.defaultCursor = 'crosshair';
+            } else if (currentTool === 'eraser') {
+                canvas.defaultCursor = 'pointer';
+            } else {
+                canvas.defaultCursor = 'default';
+            }
+            canvas.selection = currentTool !== 'eraser';
+            
+            // Сбрасываем состояние перетаскивания
+            isPanning = false;
+            lastPanPoint = null;
+        }
+        
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initCanvas();
+            updateResults();
+            initSizeMenuDragging();
+            
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1);
+                if (hash === 'tcalc-calculator' || hash === 'calculator' || hash === 'tcalc') {
+                    const calculator = document.getElementById('tcalc-calculator');
+                    if (calculator) {
+                        setTimeout(() => {
+                            calculator.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start' 
+                            });
+                        }, 100);
+                    }
+                }
+            }
+        });
+
+        function initCanvas() {
+            canvas = new fabric.Canvas('tcalc-canvas', {
+                backgroundColor: '#f8f9fa',
+                selection: false,
+                preserveObjectStacking: true
+            });
+
+            const container = document.querySelector('.tcalc-canvas-container');
+            canvas.setWidth(container.offsetWidth);
+            canvas.setHeight(500);
+
+            window.addEventListener('resize', function() {
+                canvas.setWidth(container.offsetWidth);
+                canvas.renderAll();
+            });
+
+            canvas.on('mouse:down', onMouseDown);
+            canvas.on('mouse:move', onMouseMove);
+            canvas.on('mouse:up', onMouseUp);
+            
+            canvas.on('mouse:wheel', onMouseWheel);
+            
+            canvas.on('mouse:dblclick', onMouseDoubleClick);
+            
+            canvas.on('mouse:down', function(e) {
+                if (e.e.button === 2) {
+                    canvas.discardActiveObject();
+                    hideSizeMenu();
+                    canvas.renderAll();
+                    e.e.preventDefault();
+                }
+            });
+            
+            canvas.on('mouse:move', function(e) {
+                canvas.lastMouseEvent = e.e;
+            });
+            
+            canvas.wrapperEl.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+            
+            let isWrapperPanning = false;
+            let lastWrapperPanPoint = null;
+            let isPanningInProgress = false;
+            
+            canvas.wrapperEl.addEventListener('mousedown', function(e) {
+                if (e.button === 2 && currentZoom > 1) {
+                    e.preventDefault();
+                    isWrapperPanning = true;
+                    isPanningInProgress = true;
+                    lastWrapperPanPoint = { x: e.clientX, y: e.clientY };
+                    canvas.defaultCursor = 'grabbing';
+                    
+                    canvas.getObjects().forEach(obj => {
+                        if (obj.data && obj.data.type === 'tile') {
+                            obj.visible = false;
+                        }
+                    });
+                    canvas.renderAll();
+                }
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (isWrapperPanning && lastWrapperPanPoint && (e.buttons & 2)) {
+                    const currentPoint = { x: e.clientX, y: e.clientY };
+                    const deltaX = currentPoint.x - lastWrapperPanPoint.x;
+                    const deltaY = currentPoint.y - lastWrapperPanPoint.y;
+                    
+                    const panSpeed = currentZoom;
+                    const adjustedDeltaX = deltaX * panSpeed;
+                    const adjustedDeltaY = deltaY * panSpeed;
+                    
+                    const vpt = canvas.viewportTransform;
+                    const newX = vpt[4] + adjustedDeltaX;
+                    const newY = vpt[5] + adjustedDeltaY;
+                    
+                    const canvasWidth = canvas.getWidth();
+                    const canvasHeight = canvas.getHeight();
+                    const maxX = 0;
+                    const minX = -(canvasWidth * currentZoom - canvasWidth);
+                    const maxY = 0;
+                    const minY = -(canvasHeight * currentZoom - canvasHeight);
+                    
+                    vpt[4] = Math.max(minX, Math.min(maxX, newX));
+                    vpt[5] = Math.max(minY, Math.min(maxY, newY));
+                    
+                    canvas.setViewportTransform(vpt);
+                    lastWrapperPanPoint = currentPoint;
+                    e.preventDefault();
+                }
+            });
+            
+            document.addEventListener('mouseup', function(e) {
+                if (isWrapperPanning && e.button === 2) {
+                    isWrapperPanning = false;
+                    lastWrapperPanPoint = null;
+                    canvas.defaultCursor = 'grab';
+                    
+                    if (isPanningInProgress) {
+                        canvas.getObjects().forEach(obj => {
+                            if (obj.data && obj.data.type === 'tile') {
+                                obj.visible = true;
+                            }
+                        });
+                        canvas.renderAll();
+                        isPanningInProgress = false;
+                    }
+                }
+            });
+            
+            canvas.on('object:modified', onObjectModified);
+            canvas.on('object:moving', onObjectMoving);
+            canvas.on('object:scaling', onObjectScaling);
+            canvas.on('object:rotating', onObjectRotating);
+            canvas.on('selection:created', onSelectionCreated);
+            canvas.on('selection:cleared', onSelectionCleared);
+        }
+
+        function selectTool(tool) {
+            currentTool = tool;
+            
+            document.querySelectorAll('.tcalc-tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+            
+            const status = document.getElementById('tcalc-status');
+            if (tool === 'ruler') {
+                status.textContent = 'Нарисуйте площадку для заполнения плиткой';
+            } else if (tool === 'eraser') {
+                status.textContent = 'Кликните на объект для удаления';
+            }
+            
+            if (tool === 'ruler') {
+                canvas.defaultCursor = 'crosshair';
+            } else if (tool === 'eraser') {
+                canvas.defaultCursor = 'pointer';
+                canvas.selection = false;
+            } else {
+                canvas.defaultCursor = 'default';
+                canvas.selection = true;
+            }
+        }
+
+        function loadPlan(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fabric.Image.fromURL(e.target.result, function(img) {
+                    // Масштабируем изображение под размер canvas
+                    const canvasWidth = canvas.getWidth();
+                    const canvasHeight = canvas.getHeight();
+                    
+                    const scaleX = canvasWidth / img.width;
+                    const scaleY = canvasHeight / img.height;
+                    const scale = Math.min(scaleX, scaleY);
+                    
+                    img.scale(scale);
+                    img.set({
+                        left: (canvasWidth - img.width * scale) / 2,
+                        top: (canvasHeight - img.height * scale) / 2
+                    });
+                    
+                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function onMouseDown(e) {
+            if (e.e.button === 2) {
+                if (canvas.getActiveObject()) {
+                    canvas.discardActiveObject();
+                    hideSizeMenu();
+                    canvas.renderAll();
+                    return;
+                }
+                return;
+            }
+            
+            if (e.e.button === 0) {
+                if (currentTool === 'eraser') {
+                    if (e.target) {
+                        if (e.target.data && e.target.data.type === 'boundary') {
+                            const boundary = e.target;
+                            const boundaryBounds = getBoundaryBounds(boundary);
+                            
+                            const tiles = canvas.getObjects().filter(obj => 
+                                obj.data && obj.data.type === 'tile' && 
+                                isTileInBoundary(obj, boundaryBounds)
+                            );
+                            tiles.forEach(tile => canvas.remove(tile));
+                            
+                            canvas.remove(boundary);
+                            
+                            if (currentEditingBoundary === boundary) {
+                                hideSizeMenu();
+                            }
+                        } else if (e.target.data && e.target.data.type === 'tile') {
+                            canvas.remove(e.target);
+                        }
+                        
+                        canvas.renderAll();
+                        updateResults();
+                        updateStatistics();
+                    }
+                    return;
+                }
+                
+                if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                    currentEditingBoundary = e.target;
+                    showSizeMenu(e.target);
+                    return;
+                }
+                
+                if (e.target) return;
+                
+                isDrawing = true;
+                const pointer = canvas.getPointer(e.e);
+                
+                if (currentTool === 'ruler') {
+                    startPoint = { x: pointer.x, y: pointer.y };
+                    isDrawing = true;
+                }
+            }
+        }
+
+        function onMouseMove(e) {
+            if (isPanning && lastPanPoint && (e.e.buttons & 2)) {
+                return;
+            }
+            
+            if (!isDrawing) return;
+            
+            const pointer = canvas.getPointer(e.e);
+            
+            if (currentTool === 'ruler') {
+                let activeObject = canvas.getActiveObject();
+                
+                if (!activeObject || !activeObject.data || activeObject.data.type !== 'boundary') {
+                    const distance = Math.sqrt(
+                        Math.pow(pointer.x - startPoint.x, 2) + 
+                        Math.pow(pointer.y - startPoint.y, 2)
+                    );
+                    
+                    if (distance > 5) {
+                        const snappedX = snapToGrid(startPoint.x);
+                        const snappedY = snapToGrid(startPoint.y);
+                        
+                        const rect = new fabric.Rect({
+                            left: snappedX,
+                            top: snappedY,
+                            width: 1.1,
+                            height: 2.2,
+                            fill: 'rgba(255, 102, 0, 0.1)',
+                            stroke: '#ff6600',
+                            strokeWidth: 0.1,
+                            selectable: true,
+                            data: { type: 'boundary' }
+                        });
+                        canvas.add(rect);
+                        canvas.setActiveObject(rect);
+                        
+                        currentEditingBoundary = rect;
+                        activeObject = rect;
+                    }
+                }
+                
+                if (activeObject && activeObject.type === 'rect' && activeObject.data && activeObject.data.type === 'boundary') {
+                    const snappedX = snapToGrid(pointer.x);
+                    const snappedY = snapToGrid(pointer.y);
+                    
+                    const startX = activeObject.left;
+                    const startY = activeObject.top;
+                    
+                    let newLeft, newTop, newWidth, newHeight;
+                    
+                    if (snappedX >= startX) {
+                        newLeft = startX;
+                        newWidth = snappedX - startX;
+                    } else {
+                        newLeft = snappedX;
+                        newWidth = startX - snappedX;
+                    }
+                    
+                    if (snappedY >= startY) {
+                        newTop = startY;
+                        newHeight = snappedY - startY;
+                    } else {
+                        newTop = snappedY;
+                        newHeight = startY - snappedY;
+                    }
+                    
+                    newWidth = Math.max(newWidth, 1.1);
+                    newHeight = Math.max(newHeight, 2.2);
+                    
+                    activeObject.set({
+                        left: newLeft,
+                        top: newTop,
+                        width: newWidth,
+                        height: newHeight
+                    });
+                }
+            }
+            
+            canvas.renderAll();
+        }
+
+        function onMouseUp(e) {
+            if (isPanning && e.e.button === 2) {
+                return;
+            }
+            
+            if (isDrawing && currentTool === 'ruler') {
+                const activeObject = canvas.getActiveObject();
+                if (activeObject && activeObject.type === 'rect' && activeObject.data && activeObject.data.type === 'boundary') {
+                    setTimeout(() => {
+                        showSizeMenu(activeObject);
+                    }, 100);
+                } else {
+                    isDrawing = false;
+                    startPoint = null;
+                }
+            }
+            
+            if (currentEditingBoundary && currentEditingBoundary.data && currentEditingBoundary.data.type === 'boundary') {
+                const sizeMenu = document.getElementById('tcalc-size-menu');
+                if (sizeMenu.style.display !== 'block') {
+                    showSizeMenu(currentEditingBoundary);
+                }
+            }
+            
+            isDrawing = false;
+            startPoint = null;
+            
+            if (currentZoom > 1) {
+                if (currentTool === 'eraser') {
+                    canvas.defaultCursor = 'pointer';
+                } else {
+                    canvas.defaultCursor = 'grab';
+                }
+            } else {
+                if (currentTool === 'ruler') {
+                    canvas.defaultCursor = 'crosshair';
+                } else if (currentTool === 'eraser') {
+                    canvas.defaultCursor = 'pointer';
+                } else {
+                    canvas.defaultCursor = 'default';
+                }
+            }
+        }
+        
+        function onMouseWheel(e) {
+            e.e.preventDefault();
+            
+            const delta = e.e.deltaY;
+            const zoom = delta > 0 ? 0.9 : 1.1;
+            
+            const oldZoom = currentZoom;
+            currentZoom *= zoom;
+            
+            // Ограничиваем масштаб (минимум 100%, максимум 700%)
+            if (currentZoom < 1) currentZoom = 1;
+            if (currentZoom > 7) currentZoom = 7;
+            
+            if (oldZoom !== currentZoom) {
+                // Отключаем рендеринг во время масштабирования для производительности
+                canvas.renderOnAddRemove = false;
+                
+                // Каждый раз получаем актуальную позицию курсора
+                const pointer = canvas.getPointer(e.e);
+                
+                // Устанавливаем новый масштаб
+                canvas.setZoom(currentZoom);
+                
+                // Вычисляем смещение для центрирования на курсоре
+                const zoomRatio = currentZoom / oldZoom;
+                const vpt = canvas.viewportTransform;
+                
+                // Обновляем позицию viewport для сохранения позиции курсора
+                vpt[4] = pointer.x - (pointer.x - vpt[4]) * zoomRatio;
+                vpt[5] = pointer.y - (pointer.y - vpt[5]) * zoomRatio;
+                
+                // Применяем viewport transform
+                canvas.setViewportTransform(vpt);
+                
+                // Обновляем отображение уровня масштаба
+                const zoomLevelElement = document.getElementById('tcalc-zoom-level');
+                if (zoomLevelElement && !zoomLevelElement.classList.contains('tcalc-zoom-input')) {
+                    zoomLevelElement.textContent = Math.round(currentZoom * 100) + '%';
+                }
+                
+                // Включаем/выключаем функцию перетаскивания
+                if (currentZoom > 1) {
+                    enablePanning();
+                } else {
+                    disablePanning();
+                }
+                
+                // Включаем рендеринг обратно и принудительно перерисовываем
+                canvas.renderOnAddRemove = true;
+                canvas.renderAll();
+            }
+        }
+        
+        function onMouseDoubleClick(e) {
+            // Двойной клик для выбора участка
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                // Устанавливаем объект как активный
+                canvas.setActiveObject(e.target);
+                
+                // Включаем режим редактирования
+                e.target.selectable = true;
+                e.target.evented = true;
+                
+                // Сохраняем ссылку на редактируемый участок
+                currentEditingBoundary = e.target;
+                
+                // Показываем меню размеров
+                showSizeMenu(e.target);
+                
+                canvas.renderAll();
+                
+                // Показываем подсказку
+                const status = document.getElementById('tcalc-status');
+                status.textContent = 'Участок выбран. Введите точные размеры или перетащите за углы.';
+                
+                console.log('Участок выбран для редактирования');
+            }
+        }
+
+        function fillAreaWithTiles() {
+            // Находим границы участка
+            const boundaries = canvas.getObjects().filter(obj => 
+                obj.data && obj.data.type === 'boundary'
+            );
+            
+            if (boundaries.length === 0) {
+                alert('Сначала нарисуйте площадку!');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            const btn = document.querySelector('[onclick="fillAreaWithTiles()"]');
+            const originalText = btn.textContent;
+            btn.textContent = 'Заполнение...';
+            btn.disabled = true;
+            
+            // Очищаем существующие плитки
+            const tiles = canvas.getObjects().filter(obj => 
+                obj.data && obj.data.type === 'tile'
+            );
+            tiles.forEach(tile => canvas.remove(tile));
+            
+            // Запускаем постепенное заполнение
+            fillBoundariesGradually(boundaries, 0, btn, originalText);
+        }
+
+        function fillBoundariesGradually(boundaries, index, btn, originalText) {
+            if (index >= boundaries.length) {
+                // Все участки заполнены
+                canvas.renderAll();
+                updateResults();
+                updateStatistics();
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                // Скрываем прогресс
+                document.getElementById('tcalc-progress').style.display = 'none';
+                return;
+            }
+            
+            // Показываем прогресс
+            const progress = document.getElementById('tcalc-progress');
+            const progressFill = document.getElementById('tcalc-progress-fill');
+            const progressText = document.getElementById('tcalc-progress-text');
+            
+            progress.style.display = 'block';
+            const percent = Math.round((index / boundaries.length) * 100);
+            progressFill.style.width = percent + '%';
+            progressText.textContent = `Заполнение участка ${index + 1} из ${boundaries.length}...`;
+            
+            const boundary = boundaries[index];
+            fillBoundaryGradually(boundary, 0, () => {
+                // Переходим к следующему участку
+                setTimeout(() => {
+                    fillBoundariesGradually(boundaries, index + 1, btn, originalText);
+                }, 50);
+            });
+        }
+
+        function fillBoundaryGradually(boundary, tileCount, callback) {
+            // Получаем текущие границы области с учетом поворота
+            let bounds = getBoundaryBounds(boundary);
+            if (!bounds) {
+                callback();
+                return;
+            }
+            
+            // Проверяем размеры области
+            const areaWidth = bounds.right - bounds.left;
+            const areaHeight = bounds.bottom - bounds.top;
+            
+            if (areaWidth < 1.1 || areaHeight < 2.2) {
+                callback();
+                return;
+            }
+            
+            // Инициализируем сетку при первом вызове
+            if (tileCount === 0) {
+                boundary.grid = {};
+                boundary.tileIndex = 0;
+                boundary.horizontalCount = 0;
+                boundary.verticalCount = 0;
+            }
+            
+            const grid = boundary.grid;
+            const tileTypes = ['large', 'medium', 'small'];
+            let tileIndex = boundary.tileIndex;
+            let horizontalCount = boundary.horizontalCount;
+            let verticalCount = boundary.verticalCount;
+            
+            // Функция для проверки, свободно ли место
+            function isSpaceFree(x, y, width, height) {
+                if (bounds.rotated) {
+                    // Для повернутых участков проверяем пересечение с существующими плитками
+                    const newTileBounds = {
+                        left: x,
+                        top: y,
+                        right: x + width,
+                        bottom: y + height
+                    };
+                    
+                    // Проверяем пересечение с существующими плитками
+                    for (let i = x; i < x + width; i += 0.5) {
+                        for (let j = y; j < y + height; j += 0.5) {
+                            if (grid[`${Math.round(i)},${Math.round(j)}`]) return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    // Для неповернутых участков используем обычную проверку
+                    for (let i = x; i < x + width; i++) {
+                        for (let j = y; j < y + height; j++) {
+                            if (grid[`${i},${j}`]) return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            
+            // Функция для отметки места как занятого
+            function markSpaceOccupied(x, y, width, height) {
+                if (bounds.rotated) {
+                    // Для повернутых участков отмечаем более плотную сетку
+                    for (let i = x; i < x + width; i += 0.5) {
+                        for (let j = y; j < y + height; j += 0.5) {
+                            grid[`${Math.round(i)},${Math.round(j)}`] = true;
+                        }
+                    }
+                } else {
+                    // Для неповернутых участков используем обычную сетку
+                    for (let i = x; i < x + width; i++) {
+                        for (let j = y; j < y + height; j++) {
+                            grid[`${i},${j}`] = true;
+                        }
+                    }
+                }
+            }
+            
+            // Функция для поиска места для плитки с учетом поворота
+            function findPosition(width, height) {
+                if (bounds.rotated) {
+                    // Для повернутого участка используем сетку, ориентированную по углу наклона
+                    const step = 1.1; // Шаг сетки
+                    const angle = bounds.angle * Math.PI / 180;
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    
+                    // Вычисляем размеры сетки в направлении наклона
+                    const gridWidth = bounds.originalWidth;
+                    const gridHeight = bounds.originalHeight;
+                    
+                    // Создаем сетку в направлении наклона
+                    for (let gridY = 0; gridY <= gridHeight - height; gridY += step) {
+                        for (let gridX = 0; gridX <= gridWidth - width; gridX += step) {
+                            // Преобразуем координаты сетки в мировые координаты
+                            const worldX = bounds.center.x + (gridX - gridWidth/2 + width/2) * cos - (gridY - gridHeight/2 + height/2) * sin;
+                            const worldY = bounds.center.y + (gridX - gridWidth/2 + width/2) * sin + (gridY - gridHeight/2 + height/2) * cos;
+                            
+                            const tileCenter = { x: worldX, y: worldY };
+                            if (isPointInRotatedRectangle(tileCenter, bounds) && isSpaceFree(worldX - width/2, worldY - height/2, width, height)) {
+                                return { x: worldX - width/2, y: worldY - height/2 };
+                            }
+                        }
+                    }
+                } else {
+                    // Для неповернутого участка используем обычную сетку
+                    for (let y = bounds.top; y <= bounds.bottom - height; y++) {
+                        for (let x = bounds.left; x <= bounds.right - width; x++) {
+                            if (isSpaceFree(x, y, width, height)) {
+                                return { x, y };
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+            
+            // Размещаем несколько плиток за раз (для ускорения)
+            const tilesPerBatch = 5;
+            let placedTiles = 0;
+            let attempts = 0;
+            const maxAttempts = 100; // Увеличиваем количество попыток
+            
+            while (placedTiles < tilesPerBatch && attempts < maxAttempts) {
+                attempts++;
+                
+                // Выбираем размер плитки с приоритетом на большие
+                let tileType;
+                if (tileIndex % 4 === 0) {
+                    tileType = 'large';
+                } else if (tileIndex % 4 === 1) {
+                    tileType = 'medium';
+                } else {
+                    tileType = 'small';
+                }
+                
+                const config = TILE_CONFIG[tileType];
+                
+                // Определяем ориентацию на основе доступного пространства
+                let isVertical = false;
+                const areaWidth = bounds.right - bounds.left;
+                const areaHeight = bounds.bottom - bounds.top;
+                
+                if (areaHeight > areaWidth) {
+                    isVertical = true;
+                }
+                
+                let finalWidth = config.width;
+                let finalHeight = config.height;
+                
+                if (isVertical) {
+                    [finalWidth, finalHeight] = [finalHeight, finalWidth];
+                }
+                
+                // Ищем место для плитки
+                let position = findPosition(finalWidth, finalHeight);
+                
+                if (position) {
+                    let tile;
+                    
+                    if (bounds.rotated) {
+                        // Создаем повернутую плитку
+                        tile = createRotatedTile(position, finalWidth, finalHeight, tileType, bounds);
+                    } else {
+                        // Создаем обычную плитку
+                        const gradient = new fabric.Gradient({
+                            type: 'linear',
+                            coords: {
+                                x1: 0,
+                                y1: 0,
+                                x2: finalWidth,
+                                y2: finalHeight
+                            },
+                            colorStops: [
+                                { offset: 0, color: '#ffffff' },
+                                { offset: 1, color: '#cccccc' }
+                            ]
+                        });
+                        
+                        tile = new fabric.Rect({
+                            left: position.x,
+                            top: position.y,
+                            width: finalWidth,
+                            height: finalHeight,
+                            fill: gradient,
+                            stroke: '#d2b48c',
+                            strokeWidth: 0.05,
+                            selectable: false,
+                            data: { 
+                                type: 'tile',
+                                tileType: tileType,
+                                orientation: isVertical ? 'vertical' : 'horizontal'
+                            }
+                        });
+                    }
+                    
+                    canvas.add(tile);
+                    markSpaceOccupied(position.x, position.y, finalWidth, finalHeight);
+                    placedTiles++;
+                    tileIndex++;
+                } else {
+                    // Если не нашли место для этого размера, пробуем следующий
+                    tileIndex++;
+                }
+            }
+            
+            // Обновляем состояние
+            boundary.tileIndex = tileIndex;
+            boundary.horizontalCount = horizontalCount;
+            boundary.verticalCount = verticalCount;
+            
+            // Обновляем canvas и статистику
+            canvas.renderAll();
+            updateResults();
+            
+            // Проверяем, нужно ли продолжить
+            if (placedTiles > 0 && tileIndex < 1000) {
+                // Продолжаем заполнение
+                setTimeout(() => {
+                    fillBoundaryGradually(boundary, tileCount + placedTiles, callback);
+                }, 10); // Быстрое обновление
+            } else {
+                // Заполняем оставшиеся 10% маленькими плитками
+                fillRemainingArea();
+                callback();
+            }
+            
+            // Функция для заполнения оставшейся области маленькими плитками
+            function fillRemainingArea() {
+                if (bounds.rotated) {
+                    // Для повернутых участков используем сетку, ориентированную по углу наклона
+                    const step = 1.1;
+                    const angle = bounds.angle * Math.PI / 180;
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    
+                    // Вычисляем размеры сетки в направлении наклона
+                    const gridWidth = bounds.originalWidth;
+                    const gridHeight = bounds.originalHeight;
+                    
+                    // Создаем сетку в направлении наклона
+                    for (let gridY = 0; gridY <= gridHeight - step; gridY += step) {
+                        for (let gridX = 0; gridX <= gridWidth - step; gridX += step) {
+                            // Преобразуем координаты сетки в мировые координаты
+                            const worldX = bounds.center.x + (gridX - gridWidth/2 + step/2) * cos - (gridY - gridHeight/2 + step/2) * sin;
+                            const worldY = bounds.center.y + (gridX - gridWidth/2 + step/2) * sin + (gridY - gridHeight/2 + step/2) * cos;
+                            
+                            const tileCenter = { x: worldX, y: worldY };
+                            
+                            // Проверяем, находится ли плитка внутри повернутого участка
+                            if (isPointInRotatedRectangle(tileCenter, bounds)) {
+                                // Проверяем, не занято ли место
+                                let isOccupied = false;
+                                canvas.getObjects().forEach(obj => {
+                                    if (obj.data && obj.data.type === 'tile') {
+                                        if (worldX - step/2 < obj.left + obj.width && worldX + step/2 > obj.left &&
+                                            worldY - step/2 < obj.top + obj.height && worldY + step/2 > obj.top) {
+                                            isOccupied = true;
+                                        }
+                                    }
+                                });
+                                
+                                if (!isOccupied) {
+                                    const tile = createRotatedTile({ x: worldX - step/2, y: worldY - step/2 }, step, step, 'small', bounds);
+                                    canvas.add(tile);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Для неповернутых участков используем старый алгоритм
+                    const areaWidth = bounds.right - bounds.left;
+                    const areaHeight = bounds.bottom - bounds.top;
+                    const totalArea = areaWidth * areaHeight;
+                    
+                    // Вычисляем площадь уже заполненную плитками
+                    let filledArea = 0;
+                    canvas.getObjects().forEach(obj => {
+                        if (obj.data && obj.data.type === 'tile' && 
+                            obj.left >= bounds.left && obj.top >= bounds.top &&
+                            obj.left + obj.width <= bounds.right && obj.top + obj.height <= bounds.bottom) {
+                            filledArea += obj.width * obj.height;
+                        }
+                    });
+                    
+                    // Если заполнено меньше 90%, заполняем оставшееся маленькими плитками
+                    const targetFillArea = totalArea * 0.9;
+                    if (filledArea < targetFillArea) {
+                        
+                        // Заполняем оставшуюся область маленькими плитками
+                        for (let y = bounds.top; y <= bounds.bottom - 1.1; y += 1.1) {
+                            for (let x = bounds.left; x <= bounds.right - 1.1; x += 1.1) {
+                                // Проверяем, не занято ли место
+                                let isOccupied = false;
+                                canvas.getObjects().forEach(obj => {
+                                    if (obj.data && obj.data.type === 'tile') {
+                                        if (x < obj.left + obj.width && x + 1.1 > obj.left &&
+                                            y < obj.top + obj.height && y + 1.1 > obj.top) {
+                                            isOccupied = true;
+                                        }
+                                    }
+                                });
+                                
+                                if (!isOccupied) {
+                                    const gradient = new fabric.Gradient({
+                                        type: 'linear',
+                                        coords: { x1: 0, y1: 0, x2: 1.1, y2: 1.1 },
+                                        colorStops: [
+                                            { offset: 0, color: '#ffffff' },
+                                            { offset: 1, color: '#cccccc' }
+                                        ]
+                                    });
+                                    
+                                    const tile = new fabric.Rect({
+                                        left: x,
+                                        top: y,
+                                        width: 1.1,
+                                        height: 1.1,
+                                        fill: gradient,
+                                        stroke: '#d2b48c',
+                                        strokeWidth: 0.05,
+                                        selectable: false,
+                                        data: { 
+                                            type: 'tile',
+                                            tileType: 'small',
+                                            orientation: 'square'
+                                        }
+                                    });
+                                    
+                                    canvas.add(tile);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function clearTiles() {
+            const tiles = canvas.getObjects().filter(obj => 
+                obj.data && obj.data.type === 'tile'
+            );
+            tiles.forEach(tile => canvas.remove(tile));
+            canvas.renderAll();
+            updateResults();
+        }
+
+        function clearCanvas() {
+            if (confirm('Вы уверены, что хотите очистить всё?')) {
+                canvas.clear();
+                canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+                updateResults();
+            }
+        }
+
+        function updateResults() {
+            // Сбрасываем счетчики
+            tileCounts = {
+                'large': 0,
+                'medium': 0,
+                'small': 0
+            };
+            
+            // Подсчитываем плитки
+            canvas.getObjects().forEach(obj => {
+                if (obj.data && obj.data.type === 'tile' && obj.data.tileType) {
+                    tileCounts[obj.data.tileType]++;
+                }
+            });
+            
+            // Обновляем UI
+            document.getElementById('tcalc-count-large').textContent = tileCounts['large'];
+            document.getElementById('tcalc-count-medium').textContent = tileCounts['medium'];
+            document.getElementById('tcalc-count-small').textContent = tileCounts['small'];
+            
+            const total = tileCounts['large'] + tileCounts['medium'] + tileCounts['small'];
+            document.getElementById('tcalc-total-count').textContent = total;
+        }
+
+        function saveProject() {
+            const project = {
+                background: canvas.backgroundImage ? canvas.backgroundImage.toDataURL() : null,
+                objects: canvas.toJSON(),
+                tileCounts: tileCounts,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('tcalcProject', JSON.stringify(project));
+            alert('Проект сохранен!');
+        }
+
+        function loadProject() {
+            const saved = localStorage.getItem('tcalcProject');
+            if (!saved) {
+                alert('Сохраненный проект не найден');
+                return;
+            }
+            
+            try {
+                const project = JSON.parse(saved);
+                
+                canvas.loadFromJSON(project.objects, function() {
+                    if (project.background) {
+                        fabric.Image.fromURL(project.background, function(img) {
+                            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+                        });
+                    }
+                    canvas.renderAll();
+                    
+                    if (project.tileCounts) {
+                        tileCounts = project.tileCounts;
+                        updateResults();
+                    }
+                });
+                
+                alert('Проект загружен!');
+            } catch (error) {
+                alert('Ошибка при загрузке проекта');
+                console.error(error);
+            }
+        }
+        
+
+        
+        function updateStatistics() {
+            // Вычисляем площадь участка
+            const boundaries = canvas.getObjects().filter(obj => 
+                obj.data && obj.data.type === 'boundary'
+            );
+            
+            let totalArea = 0;
+            let totalPerimeter = 0;
+            let maxLength = 0;
+            let maxWidth = 0;
+            
+            boundaries.forEach(boundary => {
+                if (boundary.type === 'rect') {
+                    // Используем текущие размеры с учетом масштабирования
+                    const currentWidth = boundary.width * (boundary.scaleX || 1);
+                    const currentHeight = boundary.height * (boundary.scaleY || 1);
+                    
+                    const area = (currentWidth * currentHeight) / 100; // в м² (1px = 100мм = 0.1м)
+                    const perimeter = 2 * (currentWidth + currentHeight) / 10; // в м
+                    const length = Math.max(currentWidth, currentHeight) / 10; // в м
+                    const width = Math.min(currentWidth, currentHeight) / 10; // в м
+                    
+                    totalArea += area;
+                    totalPerimeter += perimeter;
+                    maxLength = Math.max(maxLength, length);
+                    maxWidth = Math.max(maxWidth, width);
+                }
+            });
+            
+            // Вычисляем размеры области с плитками
+            const tiles = canvas.getObjects().filter(obj => 
+                obj.data && obj.data.type === 'tile'
+            );
+            
+            let tilesMinX = Infinity;
+            let tilesMaxX = -Infinity;
+            let tilesMinY = Infinity;
+            let tilesMaxY = -Infinity;
+            
+            tiles.forEach(tile => {
+                const left = tile.left;
+                const top = tile.top;
+                const right = left + tile.width;
+                const bottom = top + tile.height;
+                
+                tilesMinX = Math.min(tilesMinX, left);
+                tilesMaxX = Math.max(tilesMaxX, right);
+                tilesMinY = Math.min(tilesMinY, top);
+                tilesMaxY = Math.max(tilesMaxY, bottom);
+            });
+            
+            // Вычисляем размеры области с плитками
+            let tilesLength = 0;
+            let tilesWidth = 0;
+            
+            if (tiles.length > 0 && tilesMinX !== Infinity) {
+                const tilesAreaWidth = tilesMaxX - tilesMinX;
+                const tilesAreaHeight = tilesMaxY - tilesMinY;
+                tilesLength = Math.max(tilesAreaWidth, tilesAreaHeight) / 10; // в м
+                tilesWidth = Math.min(tilesAreaWidth, tilesAreaHeight) / 10; // в м
+            }
+            
+            // Обновляем UI
+            document.getElementById('tcalc-area').textContent = totalArea.toFixed(1) + ' м²';
+            document.getElementById('tcalc-perimeter').textContent = totalPerimeter.toFixed(1) + ' м';
+            document.getElementById('tcalc-length').textContent = maxLength.toFixed(1) + ' м';
+            document.getElementById('tcalc-width').textContent = maxWidth.toFixed(1) + ' м';
+            document.getElementById('tcalc-tiles-length').textContent = tilesLength.toFixed(1) + ' м';
+            document.getElementById('tcalc-tiles-width').textContent = tilesWidth.toFixed(1) + ' м';
+        }
+        
+        function exportResults() {
+            // Создаем PDF с результатами
+            const results = {
+                area: document.getElementById('tcalc-area').textContent,
+                perimeter: document.getElementById('tcalc-perimeter').textContent,
+                coverage: document.getElementById('tcalc-coverage').textContent,
+                cost: document.getElementById('tcalc-cost').textContent,
+                tiles: tileCounts,
+                total: document.getElementById('tcalc-total-count').textContent
+            };
+            
+            // Простой экспорт в текстовом формате
+            const exportText = `
+РАСЧЕТ ПЛИТКИ "НОВЫЙ ГОРОД"
+
+Площадь участка: ${results.area}
+Периметр: ${results.perimeter}
+Покрытие: ${results.coverage}
+Общая стоимость: ${results.cost}
+
+Количество плиток:
+- Большая (330×220): ${results.tiles.large} шт.
+- Средняя (220×220): ${results.tiles.medium} шт.
+- Малая (110×220): ${results.tiles.small} шт.
+
+Общее количество: ${results.total} шт.
+
+Дата расчета: ${new Date().toLocaleDateString()}
+            `;
+            
+            // Создаем и скачиваем файл
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'расчет-плитки.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('Результаты экспортированы в файл расчет-плитки.txt');
+        }
+        
+        // Обработчики событий
+        function onObjectModified(e) {
+            if (e.target && e.target.data && e.target.data.type === 'tile') {
+                updateResults();
+                updateStatistics();
+            }
+            
+            // Обновляем меню размеров при изменении площадки
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                // Устанавливаем площадку как активную
+                currentEditingBoundary = e.target;
+                
+                // Обновляем меню и показываем его если скрыто
+                updateSizeMenu(e.target);
+                const sizeMenu = document.getElementById('tcalc-size-menu');
+                if (sizeMenu.style.display !== 'block') {
+                    showSizeMenu(e.target);
+                }
+                
+                updateStatistics();
+                
+                // Скрываем угол рядом с курсором при окончании поворота
+                hideCursorAngle();
+            }
+        }
+        
+        function onObjectMoving(e) {
+            // Обновляем меню размеров при перемещении площадки
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                // Устанавливаем площадку как активную
+                currentEditingBoundary = e.target;
+                updateSizeMenu(e.target);
+            }
+        }
+        
+        function onObjectScaling(e) {
+            // Обновляем меню размеров при изменении размера площадки
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                // Устанавливаем площадку как активную
+                currentEditingBoundary = e.target;
+                updateSizeMenu(e.target);
+            }
+        }
+        
+        function onObjectRotating(e) {
+            // Обновляем индикатор угла поворота
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                updateRotationIndicator(e.target);
+                showCursorAngle(e.target, e.e);
+            }
+        }
+        
+        function onSelectionCreated(e) {
+            // Показываем меню при выборе площадки
+            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                currentEditingBoundary = e.target;
+                showSizeMenu(e.target);
+                showRotationIndicator(e.target);
+            }
+        }
+        
+        function onSelectionCleared(e) {
+            // Скрываем меню при отмене выбора
+            hideSizeMenu();
+            hideRotationIndicator();
+            hideCursorAngle();
+        }
+        
+        // Горячие клавиши
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'z':
+                        e.preventDefault();
+                        // Отмена действия (можно реализовать историю)
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        saveProject();
+                        break;
+                    case 'o':
+                        e.preventDefault();
+                        loadProject();
+                        break;
+                }
+            }
+            
+            // Обработка Enter в полях ввода размеров
+            if (e.key === 'Enter' && (e.target.id === 'tcalc-length-input' || e.target.id === 'tcalc-width-input')) {
+                applySizeToBoundary();
+            }
+            
+            // Обработка Escape для скрытия меню и выбора
+            if (e.key === 'Escape') {
+                canvas.discardActiveObject();
+                hideSizeMenu();
+                canvas.renderAll();
+            }
+        });
+        
+        // Функции для работы с меню размеров
+        function showSizeMenu(boundary) {
+            if (!boundary || boundary.type !== 'rect') return;
+            
+            // Сохраняем ссылку на редактируемый участок
+            currentEditingBoundary = boundary;
+            
+            // Обновляем значения в меню
+            updateSizeMenu(boundary);
+            
+            // Показываем меню
+            document.getElementById('tcalc-size-menu').style.display = 'block';
+        }
+        
+        function updateSizeMenu(boundary) {
+            if (!boundary || boundary.type !== 'rect') return;
+            
+            // Получаем текущие размеры в метрах
+            const currentWidth = boundary.width * (boundary.scaleX || 1) / 10; // в метрах (1px = 100мм = 0.1м)
+            const currentHeight = boundary.height * (boundary.scaleY || 1) / 10; // в метрах
+            
+            // Вычисляем площадь
+            const area = currentWidth * currentHeight;
+            
+            // Обновляем поля ввода только если меню видимо
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (sizeMenu.style.display === 'block') {
+                document.getElementById('tcalc-length-input').value = currentHeight.toFixed(2);
+                document.getElementById('tcalc-width-input').value = currentWidth.toFixed(2);
+                document.getElementById('tcalc-area-input').value = area.toFixed(2);
+            }
+        }
+        
+        function hideSizeMenu() {
+            document.getElementById('tcalc-size-menu').style.display = 'none';
+            currentEditingBoundary = null;
+            
+            // Очищаем выбор на canvas
+            canvas.discardActiveObject();
+            canvas.renderAll();
+            
+            // Обновляем статус
+            const status = document.getElementById('tcalc-status');
+            if (currentTool === 'ruler') {
+                status.textContent = 'Нарисуйте площадку для заполнения плиткой';
+            } else if (currentTool === 'eraser') {
+                status.textContent = 'Кликните на объект для удаления';
+            }
+        }
+        
+        // Обработчик клика вне меню для его скрытия
+        document.addEventListener('click', function(e) {
+            // Игнорируем правую кнопку мыши
+            if (e.button === 2) return;
+            
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (sizeMenu.style.display === 'block' && !sizeMenu.contains(e.target)) {
+                // Проверяем, не кликнули ли мы на площадку
+                const clickedElement = e.target;
+                if (clickedElement.tagName === 'CANVAS') {
+                    // Если кликнули на canvas, проверяем, есть ли активная площадка
+                    if (!currentEditingBoundary) {
+                        hideSizeMenu();
+                    }
+                } else if (!sizeMenu.contains(clickedElement)) {
+                    hideSizeMenu();
+                }
+            }
+        });
+        
+        // Обработчики событий для полей ввода размеров
+        document.addEventListener('DOMContentLoaded', function() {
+            const lengthInput = document.getElementById('tcalc-length-input');
+            const widthInput = document.getElementById('tcalc-width-input');
+            
+            // Обновление размеров при изменении значений в полях
+            lengthInput.addEventListener('input', function() {
+                if (currentEditingBoundary) {
+                    updateBoundaryFromInputs();
+                }
+            });
+            
+            widthInput.addEventListener('input', function() {
+                if (currentEditingBoundary) {
+                    updateBoundaryFromInputs();
+                }
+            });
+        });
+        
+        function updateBoundaryFromInputs() {
+            if (!currentEditingBoundary) return;
+            
+            const lengthInput = document.getElementById('tcalc-length-input');
+            const widthInput = document.getElementById('tcalc-width-input');
+            const areaInput = document.getElementById('tcalc-area-input');
+            
+            const lengthMeters = parseFloat(lengthInput.value);
+            const widthMeters = parseFloat(widthInput.value);
+            
+            // Проверяем валидность
+            if (isNaN(lengthMeters) || isNaN(widthMeters) || lengthMeters <= 0 || widthMeters <= 0) {
+                return; // Не обновляем при некорректных значениях
+            }
+            
+            // Вычисляем и обновляем площадь
+            const area = lengthMeters * widthMeters;
+            areaInput.value = area.toFixed(2);
+            
+            // Конвертируем метры в пиксели (1м = 10px)
+            const lengthPixels = lengthMeters * 10;
+            const widthPixels = widthMeters * 10;
+            
+            // Привязываем к сетке
+            const snappedLength = snapToGrid(lengthPixels);
+            const snappedWidth = snapToGrid(widthPixels);
+            
+            // Обновляем размеры участка
+            currentEditingBoundary.set({
+                width: snappedWidth,
+                height: snappedLength,
+                scaleX: 1,
+                scaleY: 1
+            });
+            
+            // Обновляем canvas
+            canvas.renderAll();
+            
+            // Обновляем статистику
+            updateStatistics();
+        }
+        
+        function applySizeToBoundary() {
+            if (!currentEditingBoundary) return;
+            
+            // Получаем значения из полей ввода
+            const lengthInput = document.getElementById('tcalc-length-input');
+            const widthInput = document.getElementById('tcalc-width-input');
+            
+            const lengthMeters = parseFloat(lengthInput.value);
+            const widthMeters = parseFloat(widthInput.value);
+            
+            // Проверяем валидность
+            if (isNaN(lengthMeters) || isNaN(widthMeters) || lengthMeters <= 0 || widthMeters <= 0) {
+                alert('Пожалуйста, введите корректные размеры (больше 0)');
+                return;
+            }
+            
+            // Конвертируем метры в пиксели (1м = 10px)
+            const lengthPixels = lengthMeters * 10;
+            const widthPixels = widthMeters * 10;
+            
+            // Привязываем к сетке
+            const snappedLength = snapToGrid(lengthPixels);
+            const snappedWidth = snapToGrid(widthPixels);
+            
+            // Обновляем размеры участка
+            currentEditingBoundary.set({
+                width: snappedWidth,
+                height: snappedLength,
+                scaleX: 1,
+                scaleY: 1
+            });
+            
+            // Обновляем canvas
+            canvas.renderAll();
+            
+            // Обновляем статистику
+            updateStatistics();
+            
+            // Показываем подтверждение
+            const status = document.getElementById('tcalc-status');
+            status.textContent = `Размеры площадки обновлены: ${widthMeters.toFixed(2)}м × ${lengthMeters.toFixed(2)}м`;
+        }
+        
+        // Функции для ручного ввода масштаба
+        function enableZoomInput() {
+            const zoomLevelElement = document.getElementById('tcalc-zoom-level');
+            if (!zoomLevelElement || zoomLevelElement.classList.contains('tcalc-zoom-input')) {
+                return;
+            }
+            
+            const currentZoomPercent = Math.round(currentZoom * 100);
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'tcalc-zoom-input';
+            input.value = currentZoomPercent;
+            input.style.width = zoomLevelElement.offsetWidth + 'px';
+            input.placeholder = '100-700';
+            
+            // Заменяем span на input
+            zoomLevelElement.parentNode.replaceChild(input, zoomLevelElement);
+            input.id = 'tcalc-zoom-level';
+            
+            // Фокусируемся на поле ввода и выделяем текст
+            input.focus();
+            input.select();
+            
+            // Обработчики событий для input
+            input.addEventListener('blur', function() {
+                applyZoomFromInput(input);
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyZoomFromInput(input);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelZoomInput(input);
+                }
+            });
+        }
+        
+        function applyZoomFromInput(input) {
+            const value = parseInt(input.value);
+            if (!isNaN(value) && value >= 100 && value <= 700) {
+                // Применяем новый масштаб
+                const newZoom = value / 100;
+                currentZoom = newZoom;
+                
+                // Устанавливаем новый масштаб
+                canvas.setZoom(currentZoom);
+                
+                // Центрируем viewport
+                const vpt = canvas.viewportTransform;
+                vpt[4] = 0;
+                vpt[5] = 0;
+                canvas.setViewportTransform(vpt);
+                
+                // Включаем/выключаем функцию перетаскивания
+                if (currentZoom > 1) {
+                    enablePanning();
+                } else {
+                    disablePanning();
+                }
+                
+                canvas.renderAll();
+                
+                // Восстанавливаем span
+                restoreZoomSpan(input, value + '%');
+            } else {
+                // Некорректное значение - восстанавливаем текущий масштаб
+                restoreZoomSpan(input, Math.round(currentZoom * 100) + '%');
+            }
+        }
+        
+        function cancelZoomInput(input) {
+            // Восстанавливаем текущий масштаб
+            restoreZoomSpan(input, Math.round(currentZoom * 100) + '%');
+        }
+        
+        function restoreZoomSpan(input, text) {
+            const span = document.createElement('span');
+            span.className = 'tcalc-zoom-level';
+            span.id = 'tcalc-zoom-level';
+            span.textContent = text;
+            span.onclick = enableZoomInput;
+            span.title = 'Кликните для ввода масштаба (100-700%)';
+            
+            // Заменяем input на span
+            input.parentNode.replaceChild(span, input);
+        }
+        
+        // Функции для перетаскивания меню размеров
+        function initSizeMenuDragging() {
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (!sizeMenu) return;
+            
+            // Обработчик mousedown для начала перетаскивания
+            sizeMenu.addEventListener('mousedown', function(e) {
+                // Проверяем, что клик не на кнопках или полях ввода
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'H4') {
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isSizeMenuDragging = true;
+                sizeMenuDragStart = { x: e.clientX, y: e.clientY };
+                sizeMenuOriginalPosition = { 
+                    top: parseInt(sizeMenu.style.top) || 50, 
+                    right: parseInt(sizeMenu.style.right) || 10 
+                };
+                
+                // Изменяем курсор
+                sizeMenu.style.cursor = 'grabbing';
+                
+                // Добавляем обработчики событий
+                document.addEventListener('mousemove', onSizeMenuMouseMove);
+                document.addEventListener('mouseup', onSizeMenuMouseUp);
+            });
+            
+            // Обработчик mousedown для изменения размера
+            const resizeHandle = sizeMenu.querySelector('.tcalc-size-menu-resize-handle');
+            if (resizeHandle) {
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    isSizeMenuResizing = true;
+                    sizeMenuResizeStart = { x: e.clientX, y: e.clientY };
+                    sizeMenuOriginalSize = { 
+                        width: sizeMenu.offsetWidth, 
+                        height: sizeMenu.offsetHeight 
+                    };
+                    
+                    // Изменяем курсор
+                    sizeMenu.style.cursor = 'nw-resize';
+                    
+                    // Добавляем обработчики событий
+                    document.addEventListener('mousemove', onSizeMenuResizeMove);
+                    document.addEventListener('mouseup', onSizeMenuMouseUp);
+                });
+            }
+        }
+        
+        function onSizeMenuMouseMove(e) {
+            if (!isSizeMenuDragging || !sizeMenuDragStart) return;
+            
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (!sizeMenu) return;
+            
+            const deltaX = e.clientX - sizeMenuDragStart.x;
+            const deltaY = e.clientY - sizeMenuDragStart.y;
+            
+            // Вычисляем новые позиции
+            const newRight = sizeMenuOriginalPosition.right - deltaX;
+            const newTop = sizeMenuOriginalPosition.top + deltaY;
+            
+            // Ограничиваем позицию в пределах canvas
+            const canvasContainer = document.querySelector('.tcalc-canvas-container');
+            const menuRect = sizeMenu.getBoundingClientRect();
+            const containerRect = canvasContainer.getBoundingClientRect();
+            
+            const maxRight = containerRect.width - menuRect.width - 10;
+            const maxTop = containerRect.height - menuRect.height - 10;
+            
+            const clampedRight = Math.max(10, Math.min(maxRight, newRight));
+            const clampedTop = Math.max(10, Math.min(maxTop, newTop));
+            
+            // Применяем новые позиции
+            sizeMenu.style.right = clampedRight + 'px';
+            sizeMenu.style.top = clampedTop + 'px';
+        }
+        
+        function onSizeMenuMouseUp(e) {
+            if (!isSizeMenuDragging && !isSizeMenuResizing) return;
+            
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (sizeMenu) {
+                if (isSizeMenuDragging) {
+                    sizeMenu.style.cursor = 'move';
+                } else if (isSizeMenuResizing) {
+                    sizeMenu.style.cursor = 'move';
+                }
+            }
+            
+            isSizeMenuDragging = false;
+            isSizeMenuResizing = false;
+            sizeMenuDragStart = null;
+            sizeMenuOriginalPosition = null;
+            sizeMenuResizeStart = null;
+            sizeMenuOriginalSize = null;
+            
+            // Удаляем обработчики событий
+            document.removeEventListener('mousemove', onSizeMenuMouseMove);
+            document.removeEventListener('mousemove', onSizeMenuResizeMove);
+            document.removeEventListener('mouseup', onSizeMenuMouseUp);
+        }
+        
+        // Функции для работы с индикатором угла поворота
+        function showRotationIndicator(boundary) {
+            const indicator = document.getElementById('tcalc-rotation-indicator');
+            if (indicator) {
+                indicator.style.display = 'block';
+                updateRotationIndicator(boundary);
+            }
+        }
+        
+        function hideRotationIndicator() {
+            const indicator = document.getElementById('tcalc-rotation-indicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        function updateRotationIndicator(boundary) {
+            const angleElement = document.getElementById('tcalc-rotation-angle');
+            if (angleElement && boundary) {
+                const angle = boundary.angle || 0;
+                // Показываем отрицательные углы для наклона влево
+                angleElement.textContent = Math.round(angle) + '°';
+            }
+        }
+        
+        function showCursorAngle(boundary, event) {
+            const cursorAngle = document.getElementById('tcalc-cursor-angle');
+            const cursorAngleValue = document.getElementById('tcalc-cursor-angle-value');
+            
+            if (cursorAngle && cursorAngleValue && boundary) {
+                const angle = boundary.angle || 0;
+                // Показываем отрицательные углы для наклона влево
+                cursorAngleValue.textContent = Math.round(angle) + '°';
+                
+                // Позиционируем рядом с курсором
+                cursorAngle.style.left = (event.clientX + 15) + 'px';
+                cursorAngle.style.top = (event.clientY - 25) + 'px';
+                cursorAngle.style.display = 'block';
+            }
+        }
+        
+        function hideCursorAngle() {
+            const cursorAngle = document.getElementById('tcalc-cursor-angle');
+            if (cursorAngle) {
+                cursorAngle.style.display = 'none';
+            }
+        }
+        
+        // Функция для создания повернутой плитки
+        function createRotatedTile(position, width, height, tileType, bounds) {
+            const gradient = new fabric.Gradient({
+                type: 'linear',
+                coords: {
+                    x1: 0,
+                    y1: 0,
+                    x2: width,
+                    y2: height
+                },
+                colorStops: [
+                    { offset: 0, color: '#ffffff' },
+                    { offset: 1, color: '#cccccc' }
+                ]
+            });
+            
+            const tile = new fabric.Rect({
+                left: position.x,
+                top: position.y,
+                width: width,
+                height: height,
+                fill: gradient,
+                stroke: '#d2b48c',
+                strokeWidth: 0.05,
+                selectable: false,
+                angle: bounds.angle, // Поворачиваем плитку на тот же угол
+                data: { 
+                    type: 'tile',
+                    tileType: tileType,
+                    orientation: 'rotated'
+                }
+            });
+            
+            return tile;
+        }
+        
+        // Функция для удаления текущей площадки
+        function deleteCurrentBoundary() {
+            if (!currentEditingBoundary) return;
+            
+            if (confirm('Вы уверены, что хотите удалить эту площадку?')) {
+                // Удаляем все плитки внутри участка
+                const boundaryBounds = getBoundaryBounds(currentEditingBoundary);
+                const tiles = canvas.getObjects().filter(obj => 
+                    obj.data && obj.data.type === 'tile' && 
+                    isTileInBoundary(obj, boundaryBounds)
+                );
+                tiles.forEach(tile => canvas.remove(tile));
+                
+                // Удаляем сам участок
+                canvas.remove(currentEditingBoundary);
+                
+                // Скрываем меню и индикатор
+                hideSizeMenu();
+                hideRotationIndicator();
+                
+                // Очищаем ссылку на редактируемый участок
+                currentEditingBoundary = null;
+                
+                // Обновляем результаты
+                canvas.renderAll();
+                updateResults();
+                updateStatistics();
+                
+                // Показываем подтверждение
+                const status = document.getElementById('tcalc-status');
+                status.textContent = 'Площадка удалена';
+            }
+        }
+        
+        function onSizeMenuResizeMove(e) {
+            if (!isSizeMenuResizing || !sizeMenuResizeStart) return;
+            
+            const sizeMenu = document.getElementById('tcalc-size-menu');
+            if (!sizeMenu) return;
+            
+            const deltaX = e.clientX - sizeMenuResizeStart.x;
+            const deltaY = e.clientY - sizeMenuResizeStart.y;
+            
+            // Вычисляем новые размеры (уменьшаем ширину и увеличиваем высоту при перетаскивании влево-вверх)
+            const newWidth = sizeMenuOriginalSize.width - deltaX;
+            const newHeight = sizeMenuOriginalSize.height + deltaY;
+            
+            // Ограничиваем размеры
+            const clampedWidth = Math.max(200, Math.min(300, newWidth));
+            const clampedHeight = Math.max(180, Math.min(400, newHeight));
+            
+            // Применяем новые размеры
+            sizeMenu.style.width = clampedWidth + 'px';
+            sizeMenu.style.height = clampedHeight + 'px';
+        }
+    </script>
+</body>
+</html> 
