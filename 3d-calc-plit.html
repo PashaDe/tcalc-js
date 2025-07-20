@@ -808,8 +808,13 @@
 <body>
     <div class="tcalc-container" id="tcalc-calculator">
         <div class="tcalc-header" id="tcalc-header">
-            <h1>Калькулятор плитки "Новый город"</h1>
-            <p>Нарисуйте границы участка и заполните плиткой</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 18px;">
+                <img src="https://raw.githubusercontent.com/PashaDe/tcalc-js/main/logoplit.png" alt="Логотип" style="height: 54px; width: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: #fff;" loading="lazy">
+                <div>
+                    <h1>Калькулятор плитки "Новый город"</h1>
+                    <p>Нарисуйте границы участка и заполните плиткой</p>
+                </div>
+            </div>
         </div>
         
         <div class="tcalc-content">
@@ -835,6 +840,10 @@
                             <div class="tcalc-tool-icon">❌</div>
                             <div>Ластик (удаление)</div>
                         </div>
+                        <div class="tcalc-tool-btn" data-tool="polyline" onclick="selectTool('polyline')">
+                            <div class="tcalc-tool-icon">✏️</div>
+                            <div>Линейка (произвольная линия)</div>
+                        </div>
                     </div>
                     <div class="tcalc-status" id="tcalc-status">
                         Выберите инструмент и нарисуйте границы участка
@@ -846,10 +855,6 @@
                         <div class="tcalc-progress-text" id="tcalc-progress-text">Заполнение участка...</div>
                     </div>
                 </div>
-                
-
-                
-
                 
                 <div class="tcalc-section">
                     <h3>Статистика участка</h3>
@@ -894,6 +899,10 @@
                         <button class="tcalc-btn tcalc-btn-secondary" onclick="saveProject()">Сохранить</button>
                         <button class="tcalc-btn tcalc-btn-secondary" onclick="loadProject()">Загрузить</button>
                     </div>
+                </div>
+                <div style="margin-top: 32px; text-align: center;">
+                    <img src="https://raw.githubusercontent.com/PashaDe/tcalc-js/main/plitochkaBy.png" alt="Plitochka.by бренд" style="max-width: 90%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 6px;" loading="lazy">
+                    <div style="font-size: 13px; color: #888; margin-top: 2px;">by Plitochka.by</div>
                 </div>
             </div>
             
@@ -1396,12 +1405,17 @@
                 status.textContent = 'Нарисуйте площадку для заполнения плиткой';
             } else if (tool === 'eraser') {
                 status.textContent = 'Кликните на объект для удаления';
+            } else if (tool === 'polyline') {
+                status.textContent = 'Нарисуйте линейку для рисования линии';
             }
             
             if (tool === 'ruler') {
                 canvas.defaultCursor = 'crosshair';
             } else if (tool === 'eraser') {
                 canvas.defaultCursor = 'pointer';
+                canvas.selection = false;
+            } else if (tool === 'polyline') {
+                canvas.defaultCursor = 'crosshair';
                 canvas.selection = false;
             } else {
                 canvas.defaultCursor = 'default';
