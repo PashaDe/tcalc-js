@@ -803,6 +803,17 @@
         #tcalc-calculator:target {
             scroll-margin-top: 20px;
         }
+        
+        .tcalc-watermark {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            opacity: 1;
+            background-image: url('data:image/svg+xml;utf8,<svg width="240" height="240" xmlns="http://www.w3.org/2000/svg"><text x="0" y="120" font-size="38" fill="black" fill-opacity="0.13" transform="rotate(-30 60 120)" font-family="Arial">Plitochka.by</text></svg>');
+            background-repeat: repeat;
+            background-size: 240px 240px;
+        }
     </style>
 </head>
 <body>
@@ -918,6 +929,7 @@
                     </div>
                 
                 <div class="tcalc-canvas-container">
+                    <div class="tcalc-watermark"></div>
                     <div class="tcalc-zoom-controls">
                         <button class="tcalc-zoom-btn" onclick="zoomIn()" title="Приблизить">+</button>
                         <span class="tcalc-zoom-level" id="tcalc-zoom-level" onclick="enableZoomInput()" title="Кликните для ввода масштаба">100%</span>
