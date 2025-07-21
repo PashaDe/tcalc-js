@@ -835,6 +835,21 @@
             background-repeat: repeat;
             background-size: 240px 240px;
         }
+        
+        .tool-section {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        .tool-section h4 {
+            margin: 0 0 10px 0;
+            color: #2d3436;
+        }
+        .tcalc-tool-btn.active[data-tool="polygon"] {
+            background: #0984e3;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -875,9 +890,9 @@
                             <div class="tcalc-tool-icon">❌</div>
                             <div>Ластик (удаление)</div>
                         </div>
-                        <div class="tcalc-tool-btn" data-tool="polyline" onclick="selectTool('polyline')">
-                            <div class="tcalc-tool-icon">✏️</div>
-                            <div>Линейка (произвольная линия)</div>
+                        <div class="tcalc-tool-btn" data-tool="polygon" onclick="selectTool('polygon')">
+                            <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="3,17 10,3 17,17" fill="none" stroke="#0984e3" stroke-width="2"/></svg>
+                            <span>Полигон</span>
                         </div>
                     </div>
                     <div class="tcalc-status" id="tcalc-status">
@@ -1441,8 +1456,10 @@
                 status.textContent = 'Нарисуйте площадку для заполнения плиткой';
             } else if (tool === 'eraser') {
                 status.textContent = 'Кликните на объект для удаления';
-            } else if (tool === 'polyline') {
-                status.textContent = 'Нарисуйте линейку для рисования линии';
+            } else if (tool === 'polygon') {
+                PolygonTool.activate();
+                currentTool = 'polygon';
+                status.textContent = 'Нарисуйте полигон для рисования';
             }
             
             if (tool === 'ruler') {
@@ -1450,7 +1467,7 @@
             } else if (tool === 'eraser') {
                 canvas.defaultCursor = 'pointer';
                 canvas.selection = false;
-            } else if (tool === 'polyline') {
+            } else if (tool === 'polygon') {
                 canvas.defaultCursor = 'crosshair';
                 canvas.selection = false;
             } else {
@@ -2958,6 +2975,177 @@
             sizeMenu.style.width = clampedWidth + 'px';
             sizeMenu.style.height = clampedHeight + 'px';
         }
+
+        // ==================== ПОЛИГОНАЛЬНЫЙ КОНСТРУКТОР ====================
+        const PolygonTool = {
+          isActive: false,
+          points: [],
+          tempLine: null,
+          currentLength: 0,
+          totalLength: 0,
+
+          activate() {
+            this.isActive = true;
+            canvas.defaultCursor = 'crosshair';
+            this.updateUI();
+            console.log('Polygon Tool Activated');
+          },
+
+          deactivate() {
+            this.reset();
+          },
+
+          reset() {
+            this.points = [];
+            if (this.tempLine) canvas.remove(this.tempLine);
+            this.tempLine = null;
+            this.currentLength = 0;
+            this.totalLength = 0;
+            this.updateUI();
+          },
+
+          handleMouseDown(e) {
+            if (!this.isActive) return;
+            
+            const pointer = canvas.getPointer(e.e);
+            const point = {
+              x: Math.round(pointer.x / 10) * 10, // Привязка к сетке 1px=100мм
+              y: Math.round(pointer.y / 10) * 10
+            };
+
+            // Двойной клик - завершение
+            if (e.e.detail === 2) {
+              if (this.points.length >= 3) this.finalizePolygon();
+              return;
+            }
+
+            // Первая точка
+            if (this.points.length === 0) {
+              this.addPoint(point);
+              return;
+            }
+
+            // Проверка замыкания (10px допуск)
+            if (this.points.length > 2 && 
+                Math.abs(point.x - this.points[0].x) < 10 && 
+                Math.abs(point.y - this.points[0].y) < 10) {
+              this.finalizePolygon(true);
+              return;
+            }
+
+            this.addPoint(point);
+          },
+
+          addPoint(point) {
+            this.points.push(point);
+            
+            // Отрисовка точки
+            canvas.add(new fabric.Circle({
+              left: point.x - 3,
+              top: point.y - 3,
+              radius: 3,
+              fill: '#00b894',
+              selectable: false
+            }));
+
+            // Обновление временной линии
+            this.updateTempLine();
+            this.updateLengths();
+            this.updateUI();
+          },
+
+          updateTempLine() {
+            if (this.points.length < 1) return;
+            
+            const lastPoint = this.points[this.points.length - 1];
+            const pointer = canvas.getPointer(event.e);
+            
+            if (!this.tempLine) {
+              this.tempLine = new fabric.Line(
+                [lastPoint.x, lastPoint.y, pointer.x, pointer.y],
+                { stroke: '#0984e3', strokeWidth: 2, selectable: false }
+              );
+              canvas.add(this.tempLine);
+            } else {
+              this.tempLine.set({ x2: pointer.x, y2: pointer.y });
+            }
+            canvas.requestRenderAll();
+          },
+
+          finalizePolygon(isClosed = false) {
+            if (this.points.length < 3) return;
+            
+            const polygon = new fabric.Polygon(this.points.map(p => ({ x: p.x, y: p.y })), {
+              fill: 'rgba(9, 132, 227, 0.2)',
+              stroke: '#0984e3',
+              strokeWidth: 2,
+              objectCaching: false,
+              data: {
+                type: 'polygon-boundary',
+                isClosed,
+                lengths: this.calculateLengths(),
+                area: isClosed ? this.calculateArea() : 0
+              }
+            });
+
+            canvas.add(polygon);
+            this.reset();
+          },
+
+          calculateLengths() {
+            let lengths = [];
+            for (let i = 1; i < this.points.length; i++) {
+              const dx = (this.points[i].x - this.points[i-1].x) / 10; // в метрах
+              const dy = (this.points[i].y - this.points[i-1].y) / 10;
+              lengths.push(Math.sqrt(dx*dx + dy*dy).toFixed(2));
+            }
+            return lengths;
+          },
+
+          calculateArea() {
+            // Формула шнурования Гаусса
+            let area = 0;
+            const n = this.points.length;
+            for (let i = 0; i < n; i++) {
+              const j = (i + 1) % n;
+              area += (this.points[i].x * this.points[j].y) - (this.points[j].x * this.points[i].y);
+            }
+            return Math.abs(area / 2000); // в м² с учетом 1px=100мм
+          },
+
+          updateUI() {
+            const panel = document.getElementById('tool-panel');
+            if (!panel) return;
+            
+            panel.innerHTML = `
+              <div class="tool-section">
+                <h4>Полигональный конструктор</h4>
+                <p>Текущая линия: <strong>${this.currentLength.toFixed(2)} м</strong></p>
+                <p>Общая длина: <strong>${this.totalLength.toFixed(2)} м</strong></p>
+                <button onclick="PolygonTool.reset()">Сбросить</button>
+              </div>
+            `;
+          }
+        };
+
+        // Интеграция с основными обработчиками
+        canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
+        canvas.on('mouse:move', (e) => {
+          if (PolygonTool.isActive && PolygonTool.tempLine) {
+            const pointer = canvas.getPointer(e.e);
+            PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
+            canvas.requestRenderAll();
+            
+            // Обновление длины текущей линии
+            if (PolygonTool.points.length > 0) {
+              const last = PolygonTool.points[PolygonTool.points.length - 1];
+              const dx = (pointer.x - last.x) / 10;
+              const dy = (pointer.y - last.y) / 10;
+              PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
+              PolygonTool.updateUI();
+            }
+          }
+        });
     </script>
 </body>
 </html> 
