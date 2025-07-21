@@ -1468,12 +1468,13 @@
             
             const status = document.getElementById('tcalc-status');
             if (tool === 'ruler') {
+                PolygonTool.deactivate();
                 status.textContent = 'Нарисуйте площадку для заполнения плиткой';
             } else if (tool === 'eraser') {
+                PolygonTool.deactivate();
                 status.textContent = 'Кликните на объект для удаления';
             } else if (tool === 'polygon') {
                 PolygonTool.activate();
-                currentTool = 'polygon';
                 status.textContent = 'Нарисуйте полигон для рисования';
             }
             
@@ -3007,13 +3008,16 @@
           },
 
           deactivate() {
+            this.isActive = false;
             this.reset();
           },
 
           reset() {
             this.points = [];
-            if (this.tempLine) canvas.remove(this.tempLine);
-            this.tempLine = null;
+            if (this.tempLine) {
+              canvas.remove(this.tempLine);
+              this.tempLine = null;
+            }
             this.currentLength = 0;
             this.totalLength = 0;
             this.updateUI();
@@ -3021,25 +3025,21 @@
 
           handleMouseDown(e) {
             if (!this.isActive) return;
-            
             const pointer = canvas.getPointer(e.e);
             const point = {
               x: Math.round(pointer.x / 10) * 10, // Привязка к сетке 1px=100мм
               y: Math.round(pointer.y / 10) * 10
             };
-
             // Двойной клик - завершение
             if (e.e.detail === 2) {
               if (this.points.length >= 3) this.finalizePolygon();
               return;
             }
-
             // Первая точка
             if (this.points.length === 0) {
               this.addPoint(point);
               return;
             }
-
             // Проверка замыкания (10px допуск)
             if (this.points.length > 2 && 
                 Math.abs(point.x - this.points[0].x) < 10 && 
@@ -3047,13 +3047,12 @@
               this.finalizePolygon(true);
               return;
             }
-
             this.addPoint(point);
           },
 
           addPoint(point) {
             this.points.push(point);
-            
+
             // Отрисовка точки
             canvas.add(new fabric.Circle({
               left: point.x - 3,
@@ -3063,33 +3062,37 @@
               selectable: false
             }));
 
-            // Обновление временной линии
+            // Удаляем предыдущую временную линию, если есть
+            if (this.tempLine) {
+              canvas.remove(this.tempLine);
+              this.tempLine = null;
+            }
+
+            // Создаём новую временную линию (будет тянуться за курсором)
             this.updateTempLine();
-            this.updateLengths();
+
             this.updateUI();
           },
 
           updateTempLine() {
             if (this.points.length < 1) return;
-            
+
             const lastPoint = this.points[this.points.length - 1];
-            const pointer = canvas.getPointer(event.e);
-            
-            if (!this.tempLine) {
-              this.tempLine = new fabric.Line(
-                [lastPoint.x, lastPoint.y, pointer.x, pointer.y],
-                { stroke: '#0984e3', strokeWidth: 2, selectable: false }
-              );
-              canvas.add(this.tempLine);
-            } else {
-              this.tempLine.set({ x2: pointer.x, y2: pointer.y });
-            }
+            // pointer нужен только для mouse:move, здесь просто создаём линию с совпадающими концами
+            this.tempLine = new fabric.Line(
+              [lastPoint.x, lastPoint.y, lastPoint.x, lastPoint.y],
+              { stroke: '#0984e3', strokeWidth: 2, selectable: false }
+            );
+            canvas.add(this.tempLine);
             canvas.requestRenderAll();
           },
 
           finalizePolygon(isClosed = false) {
             if (this.points.length < 3) return;
-            
+            if (this.tempLine) {
+              canvas.remove(this.tempLine);
+              this.tempLine = null;
+            }
             const polygon = new fabric.Polygon(this.points.map(p => ({ x: p.x, y: p.y })), {
               fill: 'rgba(9, 132, 227, 0.2)',
               stroke: '#0984e3',
@@ -3102,7 +3105,6 @@
                 area: isClosed ? this.calculateArea() : 0
               }
             });
-
             canvas.add(polygon);
             this.reset();
           },
@@ -3131,7 +3133,6 @@
           updateUI() {
             const panel = document.getElementById('tool-panel');
             if (!panel) return;
-            
             panel.innerHTML = `
               <div class="tool-section">
                 <h4>Полигональный конструктор</h4>
