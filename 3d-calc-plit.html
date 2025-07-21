@@ -1463,6 +1463,7 @@
                   const dy = (pointer.y - last.y) / 10;
                   PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
                   PolygonTool.updateUI();
+                  PolygonTool.updateSizeMenuPolygon();
                 }
               }
             });
@@ -3139,10 +3140,12 @@
             // Создаём новую временную линию (будет тянуться за курсором)
             this.updateTempLine();
             this.updateUI();
-            // Показываем size-menu при первой точке
+            // Показываем size-menu при первой точке и не скрываем до завершения
             if (this.points.length === 1) {
               document.getElementById('tcalc-size-menu').style.display = 'block';
             }
+            // Обновляем значения длины и периметра в size-menu
+            this.updateSizeMenuPolygon();
           },
 
           updateTempLine() {
@@ -3158,22 +3161,18 @@
 
           finalizePolygon(isClosed = false) {
             if (this.points.length < 3) return;
-            // Удаляем временную линию
             if (this.tempLine) {
               canvas.remove(this.tempLine);
               this.tempLine = null;
             }
-            // Удаляем все временные точки
             if (this.tempPoints && this.tempPoints.length) {
               this.tempPoints.forEach(pt => canvas.remove(pt));
               this.tempPoints = [];
             }
-            // Удаляем все сегментные линии
             if (this.segmentLines && this.segmentLines.length) {
               this.segmentLines.forEach(line => canvas.remove(line));
               this.segmentLines = [];
             }
-            // Создаём полигон
             const polygon = new fabric.Polygon(this.points.map(p => ({ x: p.x, y: p.y })), {
               fill: 'rgba(9, 132, 227, 0.2)',
               stroke: '#0984e3',
@@ -3187,8 +3186,10 @@
               }
             });
             canvas.add(polygon);
-            // Скрываем size-menu после завершения
-            document.getElementById('tcalc-size-menu').style.display = 'none';
+            // Очищаем значения size-menu
+            document.getElementById('tcalc-length-input').value = '';
+            document.getElementById('tcalc-width-input').value = '';
+            document.getElementById('tcalc-area-input').value = '';
             this.reset();
           },
 
@@ -3216,10 +3217,8 @@
           updateUI() {
             const stats = document.getElementById('polygon-stats');
             if (!stats) return;
-            // Показываем блок статистики только если инструмент активен или выбран полигон
             if (this.isActive) {
                 stats.style.display = '';
-                // Текущая линия
                 document.getElementById('polygon-current-line').style.display = '';
                 document.getElementById('polygon-current-line-value').textContent = this.currentLength.toFixed(2);
                 // Периметр
@@ -3233,13 +3232,12 @@
                 }
                 document.getElementById('polygon-perimeter').style.display = '';
                 document.getElementById('polygon-perimeter-value').textContent = perim.toFixed(2);
-                // Площадь скрываем
                 document.getElementById('polygon-area-info').style.display = 'none';
+                // Также обновляем size-menu
+                this.updateSizeMenuPolygon();
             } else {
-                // Скрываем всё, кроме площади (её покажет onSelectionCreated)
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
-                // stats.style.display = 'none'; // не скрываем весь блок, чтобы площадь могла быть показана
             }
           },
 
@@ -3251,6 +3249,26 @@
                 area += (points[i].x * points[j].y) - (points[j].x * points[i].y);
             }
             return Math.abs(area / 2000); // в м², 1px=100мм
+          },
+
+          updateSizeMenuPolygon() {
+            // Обновляет значения в tcalc-size-menu для полигона
+            if (this.points.length > 0 && document.getElementById('tcalc-size-menu').style.display === 'block') {
+                // Длина текущей линии
+                document.getElementById('tcalc-length-input').value = this.currentLength.toFixed(2);
+                // Периметр
+                let perim = 0;
+                if (this.points.length > 1) {
+                    for (let i = 1; i < this.points.length; i++) {
+                        const dx = (this.points[i].x - this.points[i-1].x) / 10;
+                        const dy = (this.points[i].y - this.points[i-1].y) / 10;
+                        perim += Math.sqrt(dx*dx + dy*dy);
+                    }
+                }
+                document.getElementById('tcalc-width-input').value = perim.toFixed(2);
+                // Площадь не показываем до завершения
+                document.getElementById('tcalc-area-input').value = '';
+            }
           }
         };
 
@@ -3269,6 +3287,7 @@
               const dy = (pointer.y - last.y) / 10;
               PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
               PolygonTool.updateUI();
+              PolygonTool.updateSizeMenuPolygon();
             }
           }
         });
