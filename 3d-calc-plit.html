@@ -2440,6 +2440,17 @@
                 showSizeMenu(e.target);
                 showRotationIndicator(e.target);
             }
+            // ... ваш код ...
+            if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
+                // Площадь уже сохранена в data.area, если нет — посчитайте через PolygonTool.calculateArea
+                let area = e.target.data.area;
+                if (!area && e.target.points) {
+                    // Если вдруг не сохранено, пересчитайте
+                    area = PolygonTool.calculateAreaFromPoints(e.target.points);
+                }
+                document.getElementById('polygon-area-value').textContent = area ? area.toFixed(2) : '0.00';
+                document.getElementById('polygon-area-info').style.display = 'block';
+            }
         }
         
         function onSelectionCleared(e) {
@@ -2447,6 +2458,7 @@
             hideSizeMenu();
             hideRotationIndicator();
             hideCursorAngle();
+            document.getElementById('polygon-area-info').style.display = 'none';
         }
         
         // Горячие клавиши
@@ -3176,6 +3188,16 @@
                 <button onclick="PolygonTool.reset()">Сбросить</button>
               </div>
             `;
+          },
+
+          calculateAreaFromPoints(points) {
+            let area = 0;
+            const n = points.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                area += (points[i].x * points[j].y) - (points[j].x * points[i].y);
+            }
+            return Math.abs(area / 2000); // в м², 1px=100мм
           }
         };
 
