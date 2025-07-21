@@ -2541,13 +2541,15 @@
         }
         
         function hideSizeMenu() {
+            // Не скрывать меню, если рисуется полигон и есть хотя бы одна точка
+            if (typeof PolygonTool !== 'undefined' && PolygonTool.isActive && PolygonTool.points && PolygonTool.points.length > 0) {
+                return;
+            }
             document.getElementById('tcalc-size-menu').style.display = 'none';
             currentEditingBoundary = null;
-            
             // Очищаем выбор на canvas
             canvas.discardActiveObject();
             canvas.renderAll();
-            
             // Обновляем статус
             const status = document.getElementById('tcalc-status');
             if (currentTool === 'ruler') {
@@ -2561,7 +2563,10 @@
         document.addEventListener('click', function(e) {
             // Игнорируем правую кнопку мыши
             if (e.button === 2) return;
-            
+            // Не скрывать меню, если идёт построение полигона
+            if (typeof PolygonTool !== 'undefined' && PolygonTool.isActive && PolygonTool.points && PolygonTool.points.length > 0) {
+                return;
+            }
             const sizeMenu = document.getElementById('tcalc-size-menu');
             if (sizeMenu.style.display === 'block' && !sizeMenu.contains(e.target)) {
                 // Проверяем, не кликнули ли мы на площадку
