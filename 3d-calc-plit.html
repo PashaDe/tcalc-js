@@ -1348,6 +1348,10 @@
                 canvas.setWidth(container.offsetWidth);
                 canvas.renderAll();
             });
+            // === ВАЖНО: добавляем обработчики для прямоугольника ===
+            canvas.on('mouse:down', onMouseDown);
+            canvas.on('mouse:move', onMouseMove);
+            canvas.on('mouse:up', onMouseUp);
             // Навешиваем обработчики только после инициализации canvas
             canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
             canvas.on('mouse:move', (e) => {
