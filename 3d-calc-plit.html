@@ -1341,24 +1341,38 @@
                 selection: false,
                 preserveObjectStacking: true
             });
-
             const container = document.querySelector('.tcalc-canvas-container');
             canvas.setWidth(container.offsetWidth);
             canvas.setHeight(500);
-
             window.addEventListener('resize', function() {
                 canvas.setWidth(container.offsetWidth);
                 canvas.renderAll();
             });
-
-            canvas.on('mouse:down', onMouseDown);
-            canvas.on('mouse:move', onMouseMove);
-            canvas.on('mouse:up', onMouseUp);
-            
+            // Навешиваем обработчики только после инициализации canvas
+            canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
+            canvas.on('mouse:move', (e) => {
+              if (PolygonTool.isActive && PolygonTool.tempLine) {
+                const pointer = canvas.getPointer(e.e);
+                PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
+                canvas.requestRenderAll();
+                if (PolygonTool.points.length > 0) {
+                  const last = PolygonTool.points[PolygonTool.points.length - 1];
+                  const dx = (pointer.x - last.x) / 10;
+                  const dy = (pointer.y - last.y) / 10;
+                  PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
+                  PolygonTool.updateUI();
+                  PolygonTool.updateSizeMenuPolygon();
+                }
+              }
+            });
+            canvas.on('object:modified', onObjectModified);
+            canvas.on('object:moving', onObjectMoving);
+            canvas.on('object:scaling', onObjectScaling);
+            canvas.on('object:rotating', onObjectRotating);
+            canvas.on('selection:created', onSelectionCreated);
+            canvas.on('selection:cleared', onSelectionCleared);
             canvas.on('mouse:wheel', onMouseWheel);
-            
             canvas.on('mouse:dblclick', onMouseDoubleClick);
-            
             canvas.on('mouse:down', function(e) {
                 if (e.e.button === 2) {
                     canvas.discardActiveObject();
@@ -1367,15 +1381,12 @@
                     e.e.preventDefault();
                 }
             });
-            
             canvas.on('mouse:move', function(e) {
                 canvas.lastMouseEvent = e.e;
             });
-            
             canvas.wrapperEl.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
             });
-            
             let isWrapperPanning = false;
             let lastWrapperPanPoint = null;
             let isPanningInProgress = false;
@@ -1443,29 +1454,6 @@
                         isPanningInProgress = false;
                     }
                 }
-            });
-            
-            canvas.on('object:modified', onObjectModified);
-            canvas.on('object:moving', onObjectMoving);
-            canvas.on('object:scaling', onObjectScaling);
-            canvas.on('object:rotating', onObjectRotating);
-            canvas.on('selection:created', onSelectionCreated);
-            canvas.on('selection:cleared', onSelectionCleared);
-            canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
-            canvas.on('mouse:move', (e) => {
-              if (PolygonTool.isActive && PolygonTool.tempLine) {
-                const pointer = canvas.getPointer(e.e);
-                PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
-                canvas.requestRenderAll();
-                if (PolygonTool.points.length > 0) {
-                  const last = PolygonTool.points[PolygonTool.points.length - 1];
-                  const dx = (pointer.x - last.x) / 10;
-                  const dy = (pointer.y - last.y) / 10;
-                  PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
-                  PolygonTool.updateUI();
-                  PolygonTool.updateSizeMenuPolygon();
-                }
-              }
             });
         }
 
