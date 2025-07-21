@@ -2997,6 +2997,8 @@
           isActive: false,
           points: [],
           tempLine: null,
+          tempPoints: [],
+          segmentLines: [],
           currentLength: 0,
           totalLength: 0,
 
@@ -3014,9 +3016,20 @@
 
           reset() {
             this.points = [];
+            this.tempPoints = [];
             if (this.tempLine) {
               canvas.remove(this.tempLine);
               this.tempLine = null;
+            }
+            // Удаляем все временные точки
+            if (this.tempPoints && this.tempPoints.length) {
+              this.tempPoints.forEach(pt => canvas.remove(pt));
+              this.tempPoints = [];
+            }
+            // Удаляем все сегментные линии
+            if (this.segmentLines && this.segmentLines.length) {
+              this.segmentLines.forEach(line => canvas.remove(line));
+              this.segmentLines = [];
             }
             this.currentLength = 0;
             this.totalLength = 0;
@@ -3051,37 +3064,47 @@
           },
 
           addPoint(point) {
+            // Добавляем точку в массив
             this.points.push(point);
-
-            // Отрисовка точки
-            canvas.add(new fabric.Circle({
+            // Рисуем точку
+            const circle = new fabric.Circle({
               left: point.x - 3,
               top: point.y - 3,
               radius: 3,
               fill: '#00b894',
               selectable: false
-            }));
-
-            // Удаляем предыдущую временную линию, если есть
+            });
+            canvas.add(circle);
+            this.tempPoints.push(circle);
+            // Если есть предыдущая точка, рисуем постоянный отрезок
+            if (this.points.length > 1) {
+              const prev = this.points[this.points.length - 2];
+              const line = new fabric.Line([
+                prev.x, prev.y, point.x, point.y
+              ], {
+                stroke: '#0984e3',
+                strokeWidth: 2,
+                selectable: false
+              });
+              canvas.add(line);
+              this.segmentLines.push(line);
+            }
+            // Удаляем временную линию, если есть
             if (this.tempLine) {
               canvas.remove(this.tempLine);
               this.tempLine = null;
             }
-
             // Создаём новую временную линию (будет тянуться за курсором)
             this.updateTempLine();
-
             this.updateUI();
           },
 
           updateTempLine() {
             if (this.points.length < 1) return;
-
             const lastPoint = this.points[this.points.length - 1];
-            // pointer нужен только для mouse:move, здесь просто создаём линию с совпадающими концами
             this.tempLine = new fabric.Line(
               [lastPoint.x, lastPoint.y, lastPoint.x, lastPoint.y],
-              { stroke: '#0984e3', strokeWidth: 2, selectable: false }
+              { stroke: '#0984e3', strokeWidth: 2, selectable: false, strokeDashArray: [6, 4] }
             );
             canvas.add(this.tempLine);
             canvas.requestRenderAll();
@@ -3089,10 +3112,22 @@
 
           finalizePolygon(isClosed = false) {
             if (this.points.length < 3) return;
+            // Удаляем временную линию
             if (this.tempLine) {
               canvas.remove(this.tempLine);
               this.tempLine = null;
             }
+            // Удаляем все временные точки
+            if (this.tempPoints && this.tempPoints.length) {
+              this.tempPoints.forEach(pt => canvas.remove(pt));
+              this.tempPoints = [];
+            }
+            // Удаляем все сегментные линии
+            if (this.segmentLines && this.segmentLines.length) {
+              this.segmentLines.forEach(line => canvas.remove(line));
+              this.segmentLines = [];
+            }
+            // Создаём полигон
             const polygon = new fabric.Polygon(this.points.map(p => ({ x: p.x, y: p.y })), {
               fill: 'rgba(9, 132, 227, 0.2)',
               stroke: '#0984e3',
