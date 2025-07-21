@@ -2445,12 +2445,17 @@
                 showSizeMenu(e.target);
                 showRotationIndicator(e.target);
             }
-            // ... ваш код ...
+            // Для полигона
             if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
+                // Показываем size-menu
+                showSizeMenu(e.target);
+                // Площадь уже сохранена в data.area, если нет — посчитайте через PolygonTool.calculateArea
                 let area = e.target.data.area;
                 if (!area && e.target.points) {
                     area = PolygonTool.calculateAreaFromPoints(e.target.points);
                 }
+                // Вставляем площадь в меню
+                document.getElementById('tcalc-area-input').value = area ? area.toFixed(2) : '0.00';
                 document.getElementById('polygon-area-value').textContent = area ? area.toFixed(2) : '0.00';
                 document.getElementById('polygon-area-info').style.display = '';
                 document.getElementById('polygon-stats').style.display = '';
@@ -2460,7 +2465,6 @@
         }
         
         function onSelectionCleared(e) {
-            // Скрываем меню при отмене выбора
             hideSizeMenu();
             hideRotationIndicator();
             hideCursorAngle();
@@ -2502,16 +2506,23 @@
         
         // Функции для работы с меню размеров
         function showSizeMenu(boundary) {
-            if (!boundary || boundary.type !== 'rect') return;
-            
-            // Сохраняем ссылку на редактируемый участок
-            currentEditingBoundary = boundary;
-            
-            // Обновляем значения в меню
-            updateSizeMenu(boundary);
-            
-            // Показываем меню
-            document.getElementById('tcalc-size-menu').style.display = 'block';
+            if (!boundary) return;
+            // Для прямоугольника
+            if (boundary.type === 'rect') {
+                currentEditingBoundary = boundary;
+                updateSizeMenu(boundary);
+                document.getElementById('tcalc-size-menu').style.display = 'block';
+                return;
+            }
+            // Для полигона
+            if (boundary.data && boundary.data.type === 'polygon-boundary') {
+                // Показываем только площадь
+                document.getElementById('tcalc-size-menu').style.display = 'block';
+                document.getElementById('tcalc-length-input').value = '';
+                document.getElementById('tcalc-width-input').value = '';
+                // Площадь уже вставляется в onSelectionCreated
+                return;
+            }
         }
         
         function updateSizeMenu(boundary) {
@@ -3053,6 +3064,8 @@
             this.currentLength = 0;
             this.totalLength = 0;
             this.updateUI();
+            // Скрываем size-menu при сбросе
+            document.getElementById('tcalc-size-menu').style.display = 'none';
           },
 
           handleMouseDown(e) {
@@ -3121,6 +3134,10 @@
             // Создаём новую временную линию (будет тянуться за курсором)
             this.updateTempLine();
             this.updateUI();
+            // Показываем size-menu при первой точке
+            if (this.points.length === 1) {
+              document.getElementById('tcalc-size-menu').style.display = 'block';
+            }
           },
 
           updateTempLine() {
@@ -3165,6 +3182,8 @@
               }
             });
             canvas.add(polygon);
+            // Скрываем size-menu после завершения
+            document.getElementById('tcalc-size-menu').style.display = 'none';
             this.reset();
           },
 
