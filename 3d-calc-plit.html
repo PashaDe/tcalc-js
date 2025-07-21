@@ -2461,6 +2461,8 @@
                     area = PolygonTool.calculateAreaFromPoints(e.target.points);
                 }
                 // Вставляем площадь в меню
+                document.getElementById('tcalc-length-input').value = '';
+                document.getElementById('tcalc-width-input').value = '';
                 document.getElementById('tcalc-area-input').value = area ? area.toFixed(2) : '0.00';
                 document.getElementById('polygon-area-value').textContent = area ? area.toFixed(2) : '0.00';
                 document.getElementById('polygon-area-info').style.display = '';
