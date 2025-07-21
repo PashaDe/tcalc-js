@@ -2447,10 +2447,13 @@
             if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
                 // Показываем size-menu
                 showSizeMenu(e.target);
-                // Площадь уже сохранена в data.area, если нет — посчитайте через PolygonTool.calculateArea
+                // Получаем точки полигона
+                let points = e.target.points || e.target._points;
                 let area = e.target.data.area;
-                if (!area && e.target.points) {
-                    area = PolygonTool.calculateAreaFromPoints(e.target.points);
+                if ((!area || area === 0) && points && points.length > 2) {
+                    // Пересчитываем площадь
+                    area = PolygonTool.calculateAreaFromPoints(points);
+                    e.target.data.area = area;
                 }
                 // Вставляем площадь в меню
                 document.getElementById('tcalc-length-input').value = '';
