@@ -2437,14 +2437,17 @@
         }
         
         function onSelectionCreated(e) {
+            console.log('selection:created', e.target);
             // Показываем меню при выборе площадки
             if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                console.log('Выбран прямоугольник (boundary)', e.target);
                 currentEditingBoundary = e.target;
                 showSizeMenu(e.target);
                 showRotationIndicator(e.target);
             }
             // Для полигона
             if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
+                console.log('Выбран полигон (polygon-boundary)', e.target);
                 // Показываем size-menu
                 showSizeMenu(e.target);
                 // Получаем точки полигона
@@ -2464,8 +2467,10 @@
                 document.getElementById('polygon-stats').style.display = '';
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
+                // Проверяем, появилось ли меню
+                const sizeMenu = document.getElementById('tcalc-size-menu');
+                console.log('sizeMenu display:', sizeMenu.style.display);
             }
-            console.log('selection:created', e.target);
         }
         
         function onSelectionCleared(e) {
