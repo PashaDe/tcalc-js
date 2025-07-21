@@ -936,6 +936,11 @@
                                 <span class="tcalc-stat-value" id="tcalc-tiles-width">0 м</span>
                             </div>
                         </div>
+                        <div id="polygon-stats" style="display:none; margin-top:10px; background:#e8f5e8; border-radius:8px; padding:10px; color:#0984e3; font-weight:600;">
+                            <div id="polygon-current-line" style="display:none;">Текущая линия: <span id="polygon-current-line-value">0.00</span> м</div>
+                            <div id="polygon-perimeter" style="display:none;">Периметр: <span id="polygon-perimeter-value">0.00</span> м</div>
+                            <div id="polygon-area-info" style="display:none;">Площадь выбранного полигона: <span id="polygon-area-value">0.00</span> м²</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -2442,14 +2447,15 @@
             }
             // ... ваш код ...
             if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
-                // Площадь уже сохранена в data.area, если нет — посчитайте через PolygonTool.calculateArea
                 let area = e.target.data.area;
                 if (!area && e.target.points) {
-                    // Если вдруг не сохранено, пересчитайте
                     area = PolygonTool.calculateAreaFromPoints(e.target.points);
                 }
                 document.getElementById('polygon-area-value').textContent = area ? area.toFixed(2) : '0.00';
-                document.getElementById('polygon-area-info').style.display = 'block';
+                document.getElementById('polygon-area-info').style.display = '';
+                document.getElementById('polygon-stats').style.display = '';
+                document.getElementById('polygon-current-line').style.display = 'none';
+                document.getElementById('polygon-perimeter').style.display = 'none';
             }
         }
         
@@ -2459,6 +2465,7 @@
             hideRotationIndicator();
             hideCursorAngle();
             document.getElementById('polygon-area-info').style.display = 'none';
+            document.getElementById('polygon-stats').style.display = 'none';
         }
         
         // Горячие клавиши
@@ -3178,16 +3185,33 @@
           },
 
           updateUI() {
-            const panel = document.getElementById('tool-panel');
-            if (!panel) return;
-            panel.innerHTML = `
-              <div class="tool-section">
-                <h4>Полигональный конструктор</h4>
-                <p>Текущая линия: <strong>${this.currentLength.toFixed(2)} м</strong></p>
-                <p>Общая длина: <strong>${this.totalLength.toFixed(2)} м</strong></p>
-                <button onclick="PolygonTool.reset()">Сбросить</button>
-              </div>
-            `;
+            const stats = document.getElementById('polygon-stats');
+            if (!stats) return;
+            // Показываем блок статистики только если инструмент активен или выбран полигон
+            if (this.isActive) {
+                stats.style.display = '';
+                // Текущая линия
+                document.getElementById('polygon-current-line').style.display = '';
+                document.getElementById('polygon-current-line-value').textContent = this.currentLength.toFixed(2);
+                // Периметр
+                let perim = 0;
+                if (this.points.length > 1) {
+                    for (let i = 1; i < this.points.length; i++) {
+                        const dx = (this.points[i].x - this.points[i-1].x) / 10;
+                        const dy = (this.points[i].y - this.points[i-1].y) / 10;
+                        perim += Math.sqrt(dx*dx + dy*dy);
+                    }
+                }
+                document.getElementById('polygon-perimeter').style.display = '';
+                document.getElementById('polygon-perimeter-value').textContent = perim.toFixed(2);
+                // Площадь скрываем
+                document.getElementById('polygon-area-info').style.display = 'none';
+            } else {
+                // Скрываем всё, кроме площади (её покажет onSelectionCreated)
+                document.getElementById('polygon-current-line').style.display = 'none';
+                document.getElementById('polygon-perimeter').style.display = 'none';
+                // stats.style.display = 'none'; // не скрываем весь блок, чтобы площадь могла быть показана
+            }
           },
 
           calculateAreaFromPoints(points) {
