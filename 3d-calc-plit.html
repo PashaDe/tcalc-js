@@ -2465,6 +2465,7 @@
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
             }
+            console.log('selection:created', e.target);
         }
         
         function onSelectionCleared(e) {
@@ -3285,8 +3286,6 @@
             const pointer = canvas.getPointer(e.e);
             PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
             canvas.requestRenderAll();
-            
-            // Обновление длины текущей линии
             if (PolygonTool.points.length > 0) {
               const last = PolygonTool.points[PolygonTool.points.length - 1];
               const dx = (pointer.x - last.x) / 10;
