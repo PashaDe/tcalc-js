@@ -3057,6 +3057,11 @@
 
           handleMouseDown(e) {
             if (!this.isActive) return;
+            // Если клик по фигуре (polygon), не добавлять точку, а позволить выделение
+            if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
+                // Просто позволяем выделение, не добавляем точку
+                return;
+            }
             const pointer = canvas.getPointer(e.e);
             const point = {
               x: Math.round(pointer.x / 10) * 10, // Привязка к сетке 1px=100мм
