@@ -3195,7 +3195,6 @@
               }
             });
             canvas.add(polygon);
-            // Сразу выделяем фигуру
             canvas.setActiveObject(polygon);
             // Показываем size-menu и площадь
             showSizeMenu(polygon);
@@ -3223,7 +3222,8 @@
               const j = (i + 1) % n;
               area += (this.points[i].x * this.points[j].y) - (this.points[j].x * this.points[i].y);
             }
-            return Math.abs(area / 2000); // в м² с учетом 1px=100мм
+            // 1px = 0.1м, значит площадь в px² * 0.01 = м²
+            return Math.abs(area) / 100;
           },
 
           updateUI() {
@@ -3260,7 +3260,7 @@
                 const j = (i + 1) % n;
                 area += (points[i].x * points[j].y) - (points[j].x * points[i].y);
             }
-            return Math.abs(area / 2000); // в м², 1px=100мм
+            return Math.abs(area) / 100; // в м², 1px=0.1м
           },
 
           updateSizeMenuPolygon() {
