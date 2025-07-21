@@ -3175,6 +3175,7 @@
               this.segmentLines.forEach(line => canvas.remove(line));
               this.segmentLines = [];
             }
+            // Создаём полигон
             const polygon = new fabric.Polygon(this.points.map(p => ({ x: p.x, y: p.y })), {
               fill: 'rgba(9, 132, 227, 0.2)',
               stroke: '#0984e3',
@@ -3188,10 +3189,13 @@
               }
             });
             canvas.add(polygon);
-            // Очищаем значения size-menu
-            document.getElementById('tcalc-length-input').value = '';
-            document.getElementById('tcalc-width-input').value = '';
-            document.getElementById('tcalc-area-input').value = '';
+            // Сразу выделяем фигуру
+            canvas.setActiveObject(polygon);
+            // Показываем size-menu и площадь
+            showSizeMenu(polygon);
+            // Вручную вызываем onSelectionCreated для корректного отображения площади
+            onSelectionCreated({ target: polygon });
+            // Очищаем значения size-menu для новых построений
             this.reset();
           },
 
