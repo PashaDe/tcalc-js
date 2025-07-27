@@ -1784,10 +1784,47 @@
             }
         }
 
+        function showSizeMenu(boundary) {
+            console.log('=== showSizeMenu вызвана ===');
+            console.log('boundary:', boundary);
+            console.log('boundary.type:', boundary?.type);
+            console.log('boundary.data:', boundary?.data);
+            
+            if (!boundary) return;
+            // Для прямоугольника
+            if (boundary.type === 'rect') {
+                console.log('Показываем меню для прямоугольника');
+                currentEditingBoundary = boundary;
+                updateSizeMenu(boundary);
+                document.getElementById('tcalc-size-menu').style.display = 'block';
+                return;
+            }
+            // Для полигона
+            if (boundary.data && boundary.data.type === 'polygon-boundary') {
+                console.log('Показываем меню для полигона');
+                // Показываем меню
+                document.getElementById('tcalc-size-menu').style.display = 'block';
+                // Заполняем поля для полигона
+                document.getElementById('tcalc-length-input').value = '';
+                document.getElementById('tcalc-width-input').value = '';
+                // Вставляем площадь в поле
+                const area = boundary.data.area || 0;
+                document.getElementById('tcalc-area-input').value = area.toFixed(2);
+                document.getElementById('polygon-area-value').textContent = area.toFixed(2);
+                document.getElementById('polygon-area-info').style.display = '';
+                document.getElementById('polygon-stats').style.display = '';
+                document.getElementById('polygon-current-line').style.display = 'none';
+                document.getElementById('polygon-perimeter').style.display = 'none';
+                console.log('Меню должно быть видимым, площадь:', area);
+                return;
+            }
+            console.log('Неизвестный тип объекта:', boundary);
+        }
+
         function fillAreaWithTiles() {
-            // Находим границы участка
+            // Находим границы участка (включая полигоны)
             const boundaries = canvas.getObjects().filter(obj => 
-                obj.data && obj.data.type === 'boundary'
+                obj.data && (obj.data.type === 'boundary' || obj.data.type === 'polygon-boundary')
             );
             
             if (boundaries.length === 0) {
@@ -2272,7 +2309,7 @@
         function updateStatistics() {
             // Вычисляем площадь участка
             const boundaries = canvas.getObjects().filter(obj => 
-                obj.data && obj.data.type === 'boundary'
+                obj.data && (obj.data.type === 'boundary' || obj.data.type === 'polygon-boundary')
             );
             
             let totalArea = 0;
@@ -2295,6 +2332,21 @@
                     totalPerimeter += perimeter;
                     maxLength = Math.max(maxLength, length);
                     maxWidth = Math.max(maxWidth, width);
+                } else if (boundary.data && boundary.data.type === 'polygon-boundary') {
+                    // Для полигона используем сохранённую площадь
+                    const area = boundary.data.area || 0;
+                    totalArea += area;
+                    
+                    // Вычисляем периметр из длин сторон
+                    if (boundary.data.lengths) {
+                        const perimeter = boundary.data.lengths.reduce((sum, length) => sum + parseFloat(length), 0);
+                        totalPerimeter += perimeter;
+                    }
+                    
+                    // Для полигона используем примерные размеры на основе площади
+                    const approxSide = Math.sqrt(area);
+                    maxLength = Math.max(maxLength, approxSide);
+                    maxWidth = Math.max(maxWidth, approxSide);
                 }
             });
             
@@ -2392,12 +2444,17 @@
             }
             
             // Обновляем меню размеров при изменении площадки
-            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+            if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                 // Устанавливаем площадку как активную
                 currentEditingBoundary = e.target;
                 
                 // Обновляем меню и показываем его если скрыто
-                updateSizeMenu(e.target);
+                if (e.target.data.type === 'boundary') {
+                    updateSizeMenu(e.target);
+                } else if (e.target.data.type === 'polygon-boundary') {
+                    showSizeMenu(e.target);
+                }
+                
                 const sizeMenu = document.getElementById('tcalc-size-menu');
                 if (sizeMenu.style.display !== 'block') {
                     showSizeMenu(e.target);
@@ -2412,19 +2469,27 @@
         
         function onObjectMoving(e) {
             // Обновляем меню размеров при перемещении площадки
-            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+            if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                 // Устанавливаем площадку как активную
                 currentEditingBoundary = e.target;
-                updateSizeMenu(e.target);
+                if (e.target.data.type === 'boundary') {
+                    updateSizeMenu(e.target);
+                } else if (e.target.data.type === 'polygon-boundary') {
+                    showSizeMenu(e.target);
+                }
             }
         }
         
         function onObjectScaling(e) {
             // Обновляем меню размеров при изменении размера площадки
-            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+            if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                 // Устанавливаем площадку как активную
                 currentEditingBoundary = e.target;
-                updateSizeMenu(e.target);
+                if (e.target.data.type === 'boundary') {
+                    updateSizeMenu(e.target);
+                } else if (e.target.data.type === 'polygon-boundary') {
+                    showSizeMenu(e.target);
+                }
             }
         }
         
@@ -2539,12 +2604,20 @@
             // Для полигона
             if (boundary.data && boundary.data.type === 'polygon-boundary') {
                 console.log('Показываем меню для полигона');
-                // Показываем только площадь
+                // Показываем меню
                 document.getElementById('tcalc-size-menu').style.display = 'block';
+                // Заполняем поля для полигона
                 document.getElementById('tcalc-length-input').value = '';
                 document.getElementById('tcalc-width-input').value = '';
-                // Площадь уже вставляется в onSelectionCreated
-                console.log('Меню должно быть видимым');
+                // Вставляем площадь в поле
+                const area = boundary.data.area || 0;
+                document.getElementById('tcalc-area-input').value = area.toFixed(2);
+                document.getElementById('polygon-area-value').textContent = area.toFixed(2);
+                document.getElementById('polygon-area-info').style.display = '';
+                document.getElementById('polygon-stats').style.display = '';
+                document.getElementById('polygon-current-line').style.display = 'none';
+                document.getElementById('polygon-perimeter').style.display = 'none';
+                console.log('Меню должно быть видимым, площадь:', area);
                 return;
             }
             console.log('Неизвестный тип объекта:', boundary);
