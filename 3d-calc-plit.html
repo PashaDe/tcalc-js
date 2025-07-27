@@ -1582,6 +1582,19 @@
                         drawingPath = [];
                         startPoint = { x: pointer.x, y: pointer.y };
                         isDrawing = true;
+                        
+                        // Показываем боковое меню сразу при начале рисования полигона
+                        document.getElementById('tcalc-size-menu').style.display = 'block';
+                        document.getElementById('polygon-current-line').style.display = '';
+                        document.getElementById('polygon-current-line').textContent = '0.00 м';
+                        document.getElementById('polygon-area-info').style.display = 'none';
+                        document.getElementById('polygon-stats').style.display = 'none';
+                        document.getElementById('polygon-perimeter').style.display = 'none';
+                        
+                        // Очищаем поля ввода
+                        document.getElementById('tcalc-length-input').value = '';
+                        document.getElementById('tcalc-width-input').value = '';
+                        document.getElementById('tcalc-area-input').value = '';
                     } else {
                         // Добавляем точку к полигону
                         const snappedX = snapToGrid(pointer.x);
@@ -1860,52 +1873,6 @@
                 
                 console.log('Участок выбран для редактирования');
             }
-        }
-
-        function showSizeMenu(boundary) {
-            console.log('=== showSizeMenu вызвана ===');
-            console.log('boundary:', boundary);
-            console.log('boundary.type:', boundary?.type);
-            console.log('boundary.data:', boundary?.data);
-            
-            if (!boundary) return;
-            // Для прямоугольника
-            if (boundary.type === 'rect') {
-                console.log('Показываем меню для прямоугольника');
-                currentEditingBoundary = boundary;
-                updateSizeMenu(boundary);
-                document.getElementById('tcalc-size-menu').style.display = 'block';
-                return;
-            }
-            // Для полигона
-            if (boundary.data && boundary.data.type === 'polygon-boundary') {
-                console.log('Показываем меню для полигона');
-                // Показываем меню
-                document.getElementById('tcalc-size-menu').style.display = 'block';
-                // Заполняем поля для полигона
-                const width = boundary.data.width || 0;
-                const height = boundary.data.height || 0;
-                const area = boundary.data.area || 0;
-                
-                // Показываем длину и ширину (больший размер = длина, меньший = ширина)
-                const length = Math.max(width, height);
-                const widthValue = Math.min(width, height);
-                
-                document.getElementById('tcalc-length-input').value = length.toFixed(2);
-                document.getElementById('tcalc-width-input').value = widthValue.toFixed(2);
-                document.getElementById('tcalc-area-input').value = area.toFixed(2);
-                
-                // Обновляем отображение площади полигона
-                document.getElementById('polygon-area-value').textContent = area.toFixed(2);
-                document.getElementById('polygon-area-info').style.display = '';
-                document.getElementById('polygon-stats').style.display = '';
-                document.getElementById('polygon-current-line').style.display = 'none';
-                document.getElementById('polygon-perimeter').style.display = 'none';
-                
-                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue);
-                return;
-            }
-            console.log('Неизвестный тип объекта:', boundary);
         }
 
         function fillAreaWithTiles() {
@@ -2698,9 +2665,22 @@
                 // Показываем меню
                 document.getElementById('tcalc-size-menu').style.display = 'block';
                 // Заполняем поля для полигона
-                const width = boundary.data.width || 0;
-                const height = boundary.data.height || 0;
+                let width = boundary.data.width || 0;
+                let height = boundary.data.height || 0;
                 const area = boundary.data.area || 0;
+                
+                // Если размеры не были сохранены, вычисляем их заново
+                if (width === 0 || height === 0) {
+                    const points = boundary.points || boundary._points;
+                    if (points && points.length > 0) {
+                        const dimensions = calculatePolygonDimensions(points);
+                        width = dimensions.width;
+                        height = dimensions.height;
+                        // Обновляем данные полигона
+                        boundary.data.width = width;
+                        boundary.data.height = height;
+                    }
+                }
                 
                 // Показываем длину и ширину (больший размер = длина, меньший = ширина)
                 const length = Math.max(width, height);
@@ -3564,6 +3544,8 @@
             const polygonPoints = drawingPath.map(p => ({ x: p.x, y: p.y }));
             const area = calculatePolygonArea(polygonPoints);
             const dimensions = calculatePolygonDimensions(polygonPoints);
+            
+            console.log('Создаём полигон с размерами:', dimensions, 'площадь:', area);
             
             const polygon = new fabric.Polygon(polygonPoints, {
                 fill: 'rgba(9, 132, 227, 0.2)',
