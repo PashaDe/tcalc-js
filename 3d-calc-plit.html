@@ -1805,17 +1805,26 @@
                 // Показываем меню
                 document.getElementById('tcalc-size-menu').style.display = 'block';
                 // Заполняем поля для полигона
-                document.getElementById('tcalc-length-input').value = '';
-                document.getElementById('tcalc-width-input').value = '';
-                // Вставляем площадь в поле
+                const width = boundary.data.width || 0;
+                const height = boundary.data.height || 0;
                 const area = boundary.data.area || 0;
+                
+                // Показываем длину и ширину (больший размер = длина, меньший = ширина)
+                const length = Math.max(width, height);
+                const widthValue = Math.min(width, height);
+                
+                document.getElementById('tcalc-length-input').value = length.toFixed(2);
+                document.getElementById('tcalc-width-input').value = widthValue.toFixed(2);
                 document.getElementById('tcalc-area-input').value = area.toFixed(2);
+                
+                // Обновляем отображение площади полигона
                 document.getElementById('polygon-area-value').textContent = area.toFixed(2);
                 document.getElementById('polygon-area-info').style.display = '';
                 document.getElementById('polygon-stats').style.display = '';
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
-                console.log('Меню должно быть видимым, площадь:', area);
+                
+                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue);
                 return;
             }
             console.log('Неизвестный тип объекта:', boundary);
@@ -2337,16 +2346,20 @@
                     const area = boundary.data.area || 0;
                     totalArea += area;
                     
+                    // Используем сохранённые размеры полигона
+                    const width = boundary.data.width || 0;
+                    const height = boundary.data.height || 0;
+                    const length = Math.max(width, height);
+                    const widthValue = Math.min(width, height);
+                    
+                    maxLength = Math.max(maxLength, length);
+                    maxWidth = Math.max(maxWidth, widthValue);
+                    
                     // Вычисляем периметр из длин сторон
                     if (boundary.data.lengths) {
                         const perimeter = boundary.data.lengths.reduce((sum, length) => sum + parseFloat(length), 0);
                         totalPerimeter += perimeter;
                     }
-                    
-                    // Для полигона используем примерные размеры на основе площади
-                    const approxSide = Math.sqrt(area);
-                    maxLength = Math.max(maxLength, approxSide);
-                    maxWidth = Math.max(maxWidth, approxSide);
                 }
             });
             
@@ -2607,17 +2620,26 @@
                 // Показываем меню
                 document.getElementById('tcalc-size-menu').style.display = 'block';
                 // Заполняем поля для полигона
-                document.getElementById('tcalc-length-input').value = '';
-                document.getElementById('tcalc-width-input').value = '';
-                // Вставляем площадь в поле
+                const width = boundary.data.width || 0;
+                const height = boundary.data.height || 0;
                 const area = boundary.data.area || 0;
+                
+                // Показываем длину и ширину (больший размер = длина, меньший = ширина)
+                const length = Math.max(width, height);
+                const widthValue = Math.min(width, height);
+                
+                document.getElementById('tcalc-length-input').value = length.toFixed(2);
+                document.getElementById('tcalc-width-input').value = widthValue.toFixed(2);
                 document.getElementById('tcalc-area-input').value = area.toFixed(2);
+                
+                // Обновляем отображение площади полигона
                 document.getElementById('polygon-area-value').textContent = area.toFixed(2);
                 document.getElementById('polygon-area-info').style.display = '';
                 document.getElementById('polygon-stats').style.display = '';
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
-                console.log('Меню должно быть видимым, площадь:', area);
+                
+                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue);
                 return;
             }
             console.log('Неизвестный тип объекта:', boundary);
@@ -2644,7 +2666,7 @@
         
         function hideSizeMenu() {
             // Не скрывать меню, если рисуется полигон и есть хотя бы одна точка
-            if (typeof PolygonTool !== 'undefined' && PolygonTool.isActive && PolygonTool.points && PolygonTool.points.length > 0) {
+            if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
                 return;
             }
             document.getElementById('tcalc-size-menu').style.display = 'none';
@@ -2666,7 +2688,7 @@
             // Игнорируем правую кнопку мыши
             if (e.button === 2) return;
             // Не скрывать меню, если идёт построение полигона
-            if (typeof PolygonTool !== 'undefined' && PolygonTool.isActive && PolygonTool.points && PolygonTool.points.length > 0) {
+            if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
                 return;
             }
             const sizeMenu = document.getElementById('tcalc-size-menu');
@@ -3406,6 +3428,94 @@
             }
           }
         });
+
+        function calculatePolygonArea(points) {
+            let area = 0;
+            const n = points.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                area += (points[i].x * points[j].y) - (points[j].x * points[i].y);
+            }
+            return Math.abs(area) / 100; // в м², 1px = 0.1м, значит 1px² = 0.01м²
+        }
+        
+        function calculatePolygonDimensions(points) {
+            if (!points || points.length === 0) return { width: 0, height: 0 };
+            
+            let minX = points[0].x;
+            let maxX = points[0].x;
+            let minY = points[0].y;
+            let maxY = points[0].y;
+            
+            for (let i = 1; i < points.length; i++) {
+                minX = Math.min(minX, points[i].x);
+                maxX = Math.max(maxX, points[i].x);
+                minY = Math.min(minY, points[i].y);
+                maxY = Math.max(maxY, points[i].y);
+            }
+            
+            const width = (maxX - minX) / 10; // в метрах (1px = 0.1м)
+            const height = (maxY - minY) / 10; // в метрах (1px = 0.1м)
+            
+            return { width, height };
+        }
+
+        function finalizePolygon() {
+            if (!drawingPath || drawingPath.length < 3) return;
+            
+            // Удаляем временные элементы (lines, points, temp-line)
+            const tempElements = canvas.getObjects().filter(obj =>
+                obj.data && (obj.data.type === 'polygon-temp-line' || obj.data.type === 'polygon-line' || obj.data.type === 'polygon-point')
+            );
+            tempElements.forEach(element => canvas.remove(element));
+            
+            // Создаём замкнутую линию от последней точки к первой
+            const lastPoint = drawingPath[drawingPath.length - 1];
+            const firstPoint = drawingPath[0];
+            const closingLine = new fabric.Line([lastPoint.x, lastPoint.y, firstPoint.x, firstPoint.y], {
+                stroke: '#0984e3',
+                strokeWidth: 2,
+                selectable: false,
+                data: { type: 'polygon-line' }
+            });
+            canvas.add(closingLine);
+            
+            // Создаём полигон как fabric.Polygon для расчёта площади
+            const polygonPoints = drawingPath.map(p => ({ x: p.x, y: p.y }));
+            const area = calculatePolygonArea(polygonPoints);
+            const dimensions = calculatePolygonDimensions(polygonPoints);
+            
+            const polygon = new fabric.Polygon(polygonPoints, {
+                fill: 'rgba(9, 132, 227, 0.2)',
+                stroke: '#0984e3',
+                strokeWidth: 2,
+                selectable: true, // Make it selectable for editing
+                data: {
+                    type: 'polygon-boundary',
+                    area: area,
+                    width: dimensions.width,
+                    height: dimensions.height
+                }
+            });
+            
+            // Удаляем все линии полигона (including the closing line)
+            const polygonLines = canvas.getObjects().filter(obj =>
+                obj.data && obj.data.type === 'polygon-line'
+            );
+            polygonLines.forEach(line => canvas.remove(line));
+            
+            // Добавляем полигон
+            canvas.add(polygon);
+            canvas.setActiveObject(polygon);
+            
+            // Показываем меню
+            currentEditingBoundary = polygon;
+            showSizeMenu(polygon);
+            
+            // Сбрасываем состояние рисования
+            drawingPath = [];
+            canvas.renderAll();
+        }
     </script>
 </body>
 </html> 
