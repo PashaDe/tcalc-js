@@ -1352,23 +1352,6 @@
             canvas.on('mouse:down', onMouseDown);
             canvas.on('mouse:move', onMouseMove);
             canvas.on('mouse:up', onMouseUp);
-            // Навешиваем обработчики только после инициализации canvas
-            canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
-            canvas.on('mouse:move', (e) => {
-              if (PolygonTool.isActive && PolygonTool.tempLine) {
-                const pointer = canvas.getPointer(e.e);
-                PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
-                canvas.requestRenderAll();
-                if (PolygonTool.points.length > 0) {
-                  const last = PolygonTool.points[PolygonTool.points.length - 1];
-                  const dx = (pointer.x - last.x) / 10;
-                  const dy = (pointer.y - last.y) / 10;
-                  PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
-                  PolygonTool.updateUI();
-                  PolygonTool.updateSizeMenuPolygon();
-                }
-              }
-            });
             canvas.on('object:modified', onObjectModified);
             canvas.on('object:moving', onObjectMoving);
             canvas.on('object:scaling', onObjectScaling);
@@ -1471,14 +1454,11 @@
             
             const status = document.getElementById('tcalc-status');
             if (tool === 'ruler') {
-                PolygonTool.deactivate();
                 status.textContent = 'Нарисуйте площадку для заполнения плиткой';
             } else if (tool === 'eraser') {
-                PolygonTool.deactivate();
                 status.textContent = 'Кликните на объект для удаления';
             } else if (tool === 'polygon') {
-                PolygonTool.activate();
-                status.textContent = 'Нарисуйте полигон для рисования';
+                status.textContent = 'Кликните для добавления точек полигона. Двойной клик или клик по первой точке для завершения.';
             }
             
             if (tool === 'ruler') {
@@ -2584,7 +2564,7 @@
                 console.log('area:', area);
                 if ((!area || area === 0) && points && points.length > 2) {
                     // Пересчитываем площадь
-                    area = PolygonTool.calculateAreaFromPoints(points);
+                    area = calculatePolygonArea(points);
                     e.target.data.area = area;
                     console.log('Пересчитанная площадь:', area);
                 }
@@ -3207,7 +3187,7 @@
             sizeMenu.style.height = clampedHeight + 'px';
         }
 
-        // ==================== ПОЛИГОНАЛЬНЫЙ КОНСТРУКТОР ====================
+
         const PolygonTool = {
           isActive: false,
           points: [],
@@ -3496,7 +3476,9 @@
                 const j = (i + 1) % n;
                 area += (points[i].x * points[j].y) - (points[j].x * points[i].y);
             }
-            return Math.abs(area) / 100; // в м², 1px = 0.1м, значит 1px² = 0.01м²
+            // Правильная формула: 1px = 0.1м, значит 1px² = 0.01м²
+            // Но нужно делить на 2, так как формула Гаусса даёт удвоенную площадь
+            return Math.abs(area) / 200; // в м²
         }
         
         function calculatePolygonDimensions(points) {
