@@ -3284,23 +3284,7 @@
           }
         };
 
-        // Интеграция с основными обработчиками
-        canvas.on('mouse:down', (e) => PolygonTool.handleMouseDown(e));
-        canvas.on('mouse:move', (e) => {
-          if (PolygonTool.isActive && PolygonTool.tempLine) {
-            const pointer = canvas.getPointer(e.e);
-            PolygonTool.tempLine.set({ x2: pointer.x, y2: pointer.y });
-            canvas.requestRenderAll();
-            if (PolygonTool.points.length > 0) {
-              const last = PolygonTool.points[PolygonTool.points.length - 1];
-              const dx = (pointer.x - last.x) / 10;
-              const dy = (pointer.y - last.y) / 10;
-              PolygonTool.currentLength = Math.sqrt(dx*dx + dy*dy);
-              PolygonTool.updateUI();
-              PolygonTool.updateSizeMenuPolygon();
-            }
-          }
-        });
+        // Удалено дублирующее регистрацию событий
     </script>
 </body>
 </html> 
