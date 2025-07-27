@@ -1576,6 +1576,40 @@
                 if (currentTool === 'ruler') {
                     startPoint = { x: pointer.x, y: pointer.y };
                     isDrawing = true;
+                } else if (currentTool === 'polygon') {
+                    // Начинаем рисование полигона
+                    if (!drawingPath || drawingPath.length === 0) {
+                        drawingPath = [];
+                        startPoint = { x: pointer.x, y: pointer.y };
+                        isDrawing = true;
+                    } else {
+                        // Добавляем точку к полигону
+                        const snappedX = snapToGrid(pointer.x);
+                        const snappedY = snapToGrid(pointer.y);
+                        drawingPath.push({ x: snappedX, y: snappedY });
+                        // Рисуем линию от предыдущей точки
+                        if (drawingPath.length > 1) {
+                            const prevPoint = drawingPath[drawingPath.length - 2];
+                            const line = new fabric.Line([prevPoint.x, prevPoint.y, snappedX, snappedY], {
+                                stroke: '#0984e3',
+                                strokeWidth: 2,
+                                selectable: false,
+                                data: { type: 'polygon-line' }
+                            });
+                            canvas.add(line);
+                        }
+                        // Рисуем точку
+                        const circle = new fabric.Circle({
+                            left: snappedX - 3,
+                            top: snappedY - 3,
+                            radius: 3,
+                            fill: '#00b894',
+                            selectable: false,
+                            data: { type: 'polygon-point' }
+                        });
+                        canvas.add(circle);
+                        canvas.renderAll();
+                    }
                 }
             }
         }
@@ -1656,6 +1690,32 @@
                         height: newHeight
                     });
                 }
+            } else if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
+                // Показываем временную линию от последней точки до курсора
+                const lastPoint = drawingPath[drawingPath.length - 1];
+                const snappedX = snapToGrid(pointer.x);
+                const snappedY = snapToGrid(pointer.y);
+                // Удаляем предыдущую временную линию
+                const tempLines = canvas.getObjects().filter(obj =>
+                    obj.data && obj.data.type === 'polygon-temp-line'
+                );
+                tempLines.forEach(line => canvas.remove(line));
+                // Рисуем новую временную линию
+                const tempLine = new fabric.Line([lastPoint.x, lastPoint.y, snappedX, snappedY], {
+                    stroke: '#0984e3',
+                    strokeWidth: 2,
+                    strokeDashArray: [6, 4],
+                    selectable: false,
+                    data: { type: 'polygon-temp-line' }
+                });
+                canvas.add(tempLine);
+                
+                // Обновляем длину текущей линии в боковом меню
+                const lineLength = Math.sqrt(Math.pow(snappedX - lastPoint.x, 2) + Math.pow(snappedY - lastPoint.y, 2)) / 10; // в метрах
+                document.getElementById('polygon-current-line').style.display = '';
+                document.getElementById('polygon-current-line').textContent = lineLength.toFixed(2) + ' м';
+                
+                canvas.renderAll();
             }
             
             canvas.renderAll();
@@ -1682,6 +1742,18 @@
                 const sizeMenu = document.getElementById('tcalc-size-menu');
                 if (sizeMenu.style.display !== 'block') {
                     showSizeMenu(currentEditingBoundary);
+                }
+            } else if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
+                // Проверяем, можно ли замкнуть полигон (двойной клик или клик по первой точке)
+                const pointer = canvas.getPointer(e.e);
+                const snappedX = snapToGrid(pointer.x);
+                const snappedY = snapToGrid(pointer.y);
+                // Проверяем замыкание (клик по первой точке с допуском 10px)
+                if (drawingPath.length > 2 &&
+                    Math.abs(snappedX - drawingPath[0].x) < 10 &&
+                    Math.abs(snappedY - drawingPath[0].y) < 10) {
+                    // Замыкаем полигон
+                    finalizePolygon();
                 }
             }
             
@@ -1759,6 +1831,12 @@
         }
         
         function onMouseDoubleClick(e) {
+            // Двойной клик для завершения полигона
+            if (currentTool === 'polygon' && drawingPath && drawingPath.length > 2) {
+                finalizePolygon();
+                return;
+            }
+            
             // Двойной клик для выбора участка
             if (e.target && e.target.data && e.target.data.type === 'boundary') {
                 // Устанавливаем объект как активный
@@ -2680,6 +2758,8 @@
                 status.textContent = 'Нарисуйте площадку для заполнения плиткой';
             } else if (currentTool === 'eraser') {
                 status.textContent = 'Кликните на объект для удаления';
+            } else if (currentTool === 'polygon') {
+                status.textContent = 'Кликните для добавления точек полигона. Двойной клик или клик по первой точке для завершения.';
             }
         }
         
