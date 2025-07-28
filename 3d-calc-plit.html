@@ -945,6 +945,7 @@
                             <div id="polygon-current-line" style="display:none;">Текущая линия: <span id="polygon-current-line-value">0.00</span> м</div>
                             <div id="polygon-perimeter" style="display:none;">Периметр: <span id="polygon-perimeter-value">0.00</span> м</div>
                             <div id="polygon-area-info" style="display:none;">Площадь выбранного полигона: <span id="polygon-area-value">0.00</span> м²</div>
+                            <div id="polygon-angle" style="display:none;">Угол наклона: <span id="polygon-angle-value">0.0</span>°</div>
                         </div>
                     </div>
                 </div>
@@ -1154,11 +1155,15 @@
                     };
                 }
             } else if (boundary.type === 'polygon' && boundary.data && boundary.data.type === 'polygon-boundary') {
-                // Для полигона вычисляем границы на основе точек
+                // Для полигона используем встроенные методы Fabric.js для правильного позиционирования
                 const points = boundary.points || boundary._points;
                 if (points && points.length > 0) {
-                    const xs = points.map(p => p.x);
-                    const ys = points.map(p => p.y);
+                    // Получаем точки в мировых координатах через метод getCoords
+                    const coords = boundary.getCoords();
+                    
+                    // Вычисляем границы на основе координат
+                    const xs = coords.map(p => p.x);
+                    const ys = coords.map(p => p.y);
                     
                     return {
                         left: Math.min(...xs),
@@ -1167,7 +1172,7 @@
                         bottom: Math.max(...ys),
                         rotated: false,
                         polygon: true,
-                        points: points
+                        points: coords
                     };
                 }
             }
@@ -2039,6 +2044,7 @@
         function fillBoundaryGradually(boundary, tileCount, callback) {
             // Получаем текущие границы области с учетом поворота
             let bounds = getBoundaryBounds(boundary);
+            
             if (!bounds) {
                 callback();
                 return;
@@ -2133,9 +2139,10 @@
             // Функция для поиска места для плитки с учетом поворота
             function findPosition(width, height) {
                 if (bounds.polygon) {
-                    // Для полигона проверяем каждую возможную позицию
+                    // Для полигона проверяем каждую возможную позицию в текущих координатах
                     const step = 0.5; // Меньший шаг для более точного заполнения
                     
+                    // Используем текущие границы полигона
                     for (let y = bounds.top; y <= bounds.bottom - height; y += step) {
                         for (let x = bounds.left; x <= bounds.right - width; x += step) {
                             // Проверяем, что все углы плитки находятся внутри полигона
@@ -2244,7 +2251,16 @@
                         tile = createRotatedTile(position, finalWidth, finalHeight, tileType, bounds);
                     } else if (bounds.polygon) {
                         // Для полигона создаем плитку с учетом угла наклона полигона
-                        const polygonAngle = calculatePolygonAngle(bounds.points);
+                        // Используем угол из данных полигона или пересчитываем его
+                        let polygonAngle = 0;
+                        
+                        // Используем текущий boundary для получения угла
+                        if (boundary && boundary.data && boundary.data.angle !== undefined) {
+                            polygonAngle = boundary.data.angle;
+                        } else {
+                            // Если угол не сохранен, пересчитываем его из мировых координат
+                            polygonAngle = calculatePolygonAngle(bounds.points);
+                        }
                         
                         const gradient = new fabric.Gradient({
                             type: 'linear',
@@ -2692,13 +2708,15 @@
                     if (points && points.length > 2) {
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
+                        const angle = calculatePolygonAngle(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
+                        e.target.data.angle = angle;
                         
-                        console.log('Полигон изменен - новая площадь:', area, 'размеры:', dimensions);
+                        console.log('Полигон изменен - новая площадь:', area, 'размеры:', dimensions, 'угол:', angle);
                     }
                     showSizeMenu(e.target);
                 }
@@ -2728,11 +2746,13 @@
                     if (points && points.length > 2) {
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
+                        const angle = calculatePolygonAngle(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
+                        e.target.data.angle = angle;
                     }
                     showSizeMenu(e.target);
                 }
@@ -2752,11 +2772,13 @@
                     if (points && points.length > 2) {
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
+                        const angle = calculatePolygonAngle(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
+                        e.target.data.angle = angle;
                     }
                     showSizeMenu(e.target);
                 }
@@ -2767,6 +2789,15 @@
             // Обновляем индикатор угла поворота
             if (e.target && e.target.data && e.target.data.type === 'boundary') {
                 updateRotationIndicator(e.target);
+                showCursorAngle(e.target, e.e);
+            } else if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
+                // Для полигона пересчитываем угол и обновляем данные
+                const points = e.target.points || e.target._points;
+                if (points && points.length > 2) {
+                    const angle = calculatePolygonAngle(points);
+                    e.target.data.angle = angle;
+                    showSizeMenu(e.target);
+                }
                 showCursorAngle(e.target, e.e);
             }
         }
@@ -2828,6 +2859,7 @@
             hideCursorAngle();
             document.getElementById('polygon-area-info').style.display = 'none';
             document.getElementById('polygon-stats').style.display = 'none';
+            document.getElementById('polygon-angle').style.display = 'none';
         }
         
         // Горячие клавиши
@@ -2887,6 +2919,7 @@
                 let width = boundary.data.width || 0;
                 let height = boundary.data.height || 0;
                 const area = boundary.data.area || 0;
+                const angle = boundary.data.angle || 0;
                 
                 // Если размеры не были сохранены, вычисляем их заново
                 if (width === 0 || height === 0) {
@@ -2909,14 +2942,22 @@
                 document.getElementById('tcalc-width-input').value = widthValue.toFixed(2);
                 document.getElementById('tcalc-area-input').value = area.toFixed(2);
                 
-                // Обновляем отображение площади полигона
+                // Обновляем отображение площади полигона и угла
                 document.getElementById('polygon-area-value').textContent = area.toFixed(2);
                 document.getElementById('polygon-area-info').style.display = '';
                 document.getElementById('polygon-stats').style.display = '';
                 document.getElementById('polygon-current-line').style.display = 'none';
                 document.getElementById('polygon-perimeter').style.display = 'none';
                 
-                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue);
+                // Показываем угол наклона полигона
+                const angleElement = document.getElementById('polygon-angle');
+                const angleValueElement = document.getElementById('polygon-angle-value');
+                if (angleElement && angleValueElement) {
+                    angleValueElement.textContent = angle.toFixed(1);
+                    angleElement.style.display = '';
+                }
+                
+                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue, 'угол:', angle);
                 return;
             }
             console.log('Неизвестный тип объекта:', boundary);
@@ -3484,8 +3525,9 @@
             const polygonPoints = drawingPath.map(p => ({ x: p.x, y: p.y }));
             const area = calculatePolygonArea(polygonPoints);
             const dimensions = calculatePolygonDimensions(polygonPoints);
+            const angle = calculatePolygonAngle(polygonPoints);
             
-            console.log('Создаём полигон с размерами:', dimensions, 'площадь:', area);
+            console.log('Создаём полигон с размерами:', dimensions, 'площадь:', area, 'угол:', angle);
             
             const polygon = new fabric.Polygon(polygonPoints, {
               fill: 'rgba(9, 132, 227, 0.2)',
@@ -3496,7 +3538,8 @@
                 type: 'polygon-boundary',
                     area: area,
                     width: dimensions.width,
-                    height: dimensions.height
+                    height: dimensions.height,
+                    angle: angle
                 }
             });
             
