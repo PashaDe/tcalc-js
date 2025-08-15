@@ -895,10 +895,10 @@
                             <div class="tcalc-tool-icon">❌</div>
                             <div>Ластик (удаление)</div>
                         </div>
-                        <!-- <div class="tcalc-tool-btn" data-tool="polygon" onclick="selectTool('polygon')">
-                            <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="3,17 10,3 17,17" fill="none" stroke="#0984e3" stroke-width="2"/></svg>
-                            <span>Полигон <span style="font-size:11px;color:#888;">(в разработке)</span></span>
-                        </div> -->
+                        <div class="tcalc-tool-btn" data-tool="polygon" onclick="selectTool('polygon')">
+                            <div class="tcalc-tool-icon">🔷</div>
+                            <div>Полигон</div>
+                        </div>
                     </div>
                     <div class="tcalc-status" id="tcalc-status">
                         Выберите инструмент и нарисуйте границы участка
@@ -1649,6 +1649,25 @@
 
         function onMouseDown(e) {
             if (e.e.button === 2) {
+                // Если рисуется полигон, отменяем его
+                if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
+                    // Удаляем временные элементы полигона
+                    const tempElements = canvas.getObjects().filter(obj =>
+                        obj.data && (obj.data.type === 'polygon-temp-line' || obj.data.type === 'polygon-line' || obj.data.type === 'polygon-point')
+                    );
+                    tempElements.forEach(element => canvas.remove(element));
+                    drawingPath = [];
+                    canvas.renderAll();
+                    
+                    // Скрываем меню
+                    hideSizeMenu();
+                    
+                    // Обновляем статус
+                    const status = document.getElementById('tcalc-status');
+                    status.textContent = 'Рисование полигона отменено. Кликните для начала нового полигона.';
+                    return;
+                }
+                
                 if (canvas.getActiveObject()) {
                     canvas.discardActiveObject();
                     hideSizeMenu();
@@ -1676,6 +1695,21 @@
                             if (currentEditingBoundary === boundary) {
                                 hideSizeMenu();
                             }
+                        } else if (e.target.data && e.target.data.type === 'polygon-boundary') {
+                            const polygon = e.target;
+                            const boundaryBounds = getBoundaryBounds(polygon);
+                            
+                            const tiles = canvas.getObjects().filter(obj => 
+                                obj.data && obj.data.type === 'tile' && 
+                                isTileInBoundary(obj, boundaryBounds)
+                            );
+                            tiles.forEach(tile => canvas.remove(tile));
+                            
+                            canvas.remove(polygon);
+                            
+                            if (currentEditingBoundary === polygon) {
+                                hideSizeMenu();
+                            }
                         } else if (e.target.data && e.target.data.type === 'tile') {
                             canvas.remove(e.target);
                         }
@@ -1687,7 +1721,7 @@
                     return;
                 }
                 
-                if (e.target && e.target.data && e.target.data.type === 'boundary') {
+                if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                     currentEditingBoundary = e.target;
                     showSizeMenu(e.target);
                     return;
@@ -2006,8 +2040,8 @@
                 return;
             }
             
-            // Двойной клик для выбора участка
-            if (e.target && e.target.data && e.target.data.type === 'boundary') {
+            // Двойной клик для выбора участка или полигона
+            if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                 // Устанавливаем объект как активный
                 canvas.setActiveObject(e.target);
                 
@@ -2025,9 +2059,13 @@
                 
                 // Показываем подсказку
                 const status = document.getElementById('tcalc-status');
-                status.textContent = 'Участок выбран. Введите точные размеры или перетащите за углы.';
+                if (e.target.data.type === 'boundary') {
+                    status.textContent = 'Участок выбран. Введите точные размеры или перетащите за углы.';
+                } else {
+                    status.textContent = 'Полигон выбран. Перетащите за углы для изменения формы.';
+                }
                 
-                console.log('Участок выбран для редактирования');
+                console.log('Объект выбран для редактирования:', e.target.data.type);
             }
         }
 
@@ -2759,14 +2797,16 @@
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
                         const angle = calculatePolygonAngle(points);
+                        const lengths = calculatePolygonLengths(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
                         e.target.data.angle = angle;
+                        e.target.data.lengths = lengths;
                         
-                        console.log('Полигон изменен - новая площадь:', area, 'размеры:', dimensions, 'угол:', angle);
+                        console.log('Полигон изменен - новая площадь:', area, 'размеры:', dimensions, 'угол:', angle, 'длины сторон:', lengths);
                     }
                     showSizeMenu(e.target);
                 }
@@ -2797,12 +2837,14 @@
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
                         const angle = calculatePolygonAngle(points);
+                        const lengths = calculatePolygonLengths(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
                         e.target.data.angle = angle;
+                        e.target.data.lengths = lengths;
                     }
                     showSizeMenu(e.target);
                 }
@@ -2823,12 +2865,14 @@
                         const area = calculatePolygonArea(points);
                         const dimensions = calculatePolygonDimensions(points);
                         const angle = calculatePolygonAngle(points);
+                        const lengths = calculatePolygonLengths(points);
                         
                         // Обновляем данные полигона
                         e.target.data.area = area;
                         e.target.data.width = dimensions.width;
                         e.target.data.height = dimensions.height;
                         e.target.data.angle = angle;
+                        e.target.data.lengths = lengths;
                     }
                     showSizeMenu(e.target);
                 }
@@ -2845,7 +2889,9 @@
                 const points = e.target.points || e.target._points;
                 if (points && points.length > 2) {
                     const angle = calculatePolygonAngle(points);
+                    const lengths = calculatePolygonLengths(points);
                     e.target.data.angle = angle;
+                    e.target.data.lengths = lengths;
                     showSizeMenu(e.target);
                 }
                 showCursorAngle(e.target, e.e);
@@ -2858,48 +2904,50 @@
             console.log('e.target.data:', e.target?.data);
             console.log('e.target.data.type:', e.target?.data?.type);
             
-            // Показываем меню при выборе площадки
-            if (e.target && e.target.data && e.target.data.type === 'boundary') {
-                console.log('Выбран прямоугольник (boundary)', e.target);
-                currentEditingBoundary = e.target;
-                showSizeMenu(e.target);
-                showRotationIndicator(e.target);
-            }
-            // Для полигона
-            if (e.target && e.target.data && e.target.data.type === 'polygon-boundary') {
-                console.log('Выбран полигон (polygon-boundary)', e.target);
+            // Показываем меню при выборе площадки или полигона
+            if (e.target && e.target.data && (e.target.data.type === 'boundary' || e.target.data.type === 'polygon-boundary')) {
                 currentEditingBoundary = e.target;
                 
-                // Получаем точки полигона и пересчитываем площадь и размеры
-                let points = e.target.points || e.target._points;
-                let area = e.target.data.area;
-                let width = e.target.data.width;
-                let height = e.target.data.height;
-                
-                console.log('points:', points);
-                console.log('area:', area);
-                
-                if (points && points.length > 2) {
-                    // Пересчитываем площадь и размеры
-                    area = calculatePolygonArea(points);
-                    const dimensions = calculatePolygonDimensions(points);
-                    width = dimensions.width;
-                    height = dimensions.height;
+                if (e.target.data.type === 'boundary') {
+                    console.log('Выбран прямоугольник (boundary)', e.target);
+                    showSizeMenu(e.target);
+                    showRotationIndicator(e.target);
+                } else if (e.target.data.type === 'polygon-boundary') {
+                    console.log('Выбран полигон (polygon-boundary)', e.target);
                     
-                    // Обновляем данные полигона
-                    e.target.data.area = area;
-                    e.target.data.width = width;
-                    e.target.data.height = height;
+                    // Получаем точки полигона и пересчитываем площадь и размеры
+                    let points = e.target.points || e.target._points;
+                    let area = e.target.data.area;
+                    let width = e.target.data.width;
+                    let height = e.target.data.height;
                     
-                    console.log('Пересчитанная площадь:', area, 'размеры:', dimensions);
+                    console.log('points:', points);
+                    console.log('area:', area);
+                    
+                    if (points && points.length > 2) {
+                        // Пересчитываем площадь и размеры
+                        area = calculatePolygonArea(points);
+                        const dimensions = calculatePolygonDimensions(points);
+                        const lengths = calculatePolygonLengths(points);
+                        width = dimensions.width;
+                        height = dimensions.height;
+                        
+                        // Обновляем данные полигона
+                        e.target.data.area = area;
+                        e.target.data.width = width;
+                        e.target.data.height = height;
+                        e.target.data.lengths = lengths;
+                        
+                        console.log('Пересчитанная площадь:', area, 'размеры:', dimensions, 'длины сторон:', lengths);
+                    }
+                    
+                    // Показываем size-menu с обновленными данными
+                    showSizeMenu(e.target);
+                    
+                    // Проверяем, появилось ли меню
+                    const sizeMenu = document.getElementById('tcalc-size-menu');
+                    console.log('sizeMenu display после заполнения:', sizeMenu.style.display);
                 }
-                
-                // Показываем size-menu с обновленными данными
-                showSizeMenu(e.target);
-                
-                // Проверяем, появилось ли меню
-                const sizeMenu = document.getElementById('tcalc-size-menu');
-                console.log('sizeMenu display после заполнения:', sizeMenu.style.display);
             }
         }
         
@@ -2938,6 +2986,25 @@
             
             // Обработка Escape для скрытия меню и выбора
             if (e.key === 'Escape') {
+                // Если рисуется полигон, отменяем его
+                if (currentTool === 'polygon' && drawingPath && drawingPath.length > 0) {
+                    // Удаляем временные элементы полигона
+                    const tempElements = canvas.getObjects().filter(obj =>
+                        obj.data && (obj.data.type === 'polygon-temp-line' || obj.data.type === 'polygon-line' || obj.data.type === 'polygon-point')
+                    );
+                    tempElements.forEach(element => canvas.remove(element));
+                    drawingPath = [];
+                    canvas.renderAll();
+                    
+                    // Скрываем меню
+                    hideSizeMenu();
+                    
+                    // Обновляем статус
+                    const status = document.getElementById('tcalc-status');
+                    status.textContent = 'Рисование полигона отменено. Кликните для начала нового полигона.';
+                    return;
+                }
+                
                 canvas.discardActiveObject();
                 hideSizeMenu();
                 canvas.renderAll();
@@ -2970,6 +3037,7 @@
                 let height = boundary.data.height || 0;
                 const area = boundary.data.area || 0;
                 const angle = boundary.data.angle || 0;
+                const lengths = boundary.data.lengths || [];
                 
                 // Если размеры не были сохранены, вычисляем их заново
                 if (width === 0 || height === 0) {
@@ -2997,7 +3065,15 @@
                 document.getElementById('polygon-area-info').style.display = '';
                 document.getElementById('polygon-stats').style.display = '';
                 document.getElementById('polygon-current-line').style.display = 'none';
-                document.getElementById('polygon-perimeter').style.display = 'none';
+                
+                // Показываем периметр полигона
+                const perimeterElement = document.getElementById('polygon-perimeter');
+                const perimeterValueElement = document.getElementById('polygon-perimeter-value');
+                if (perimeterElement && perimeterValueElement && lengths.length > 0) {
+                    const totalPerimeter = lengths.reduce((sum, length) => sum + parseFloat(length), 0);
+                    perimeterValueElement.textContent = totalPerimeter.toFixed(2);
+                    perimeterElement.style.display = '';
+                }
                 
                 // Показываем угол наклона полигона
                 const angleElement = document.getElementById('polygon-angle');
@@ -3007,7 +3083,7 @@
                     angleElement.style.display = '';
                 }
                 
-                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue, 'угол:', angle);
+                console.log('Меню должно быть видимым, площадь:', area, 'длина:', length, 'ширина:', widthValue, 'угол:', angle, 'периметр:', lengths);
                 return;
             }
             console.log('Неизвестный тип объекта:', boundary);
@@ -3569,6 +3645,21 @@
             
             return { width, height };
         }
+        
+        function calculatePolygonLengths(points) {
+            if (!points || points.length < 2) return [];
+            
+            const lengths = [];
+            for (let i = 0; i < points.length; i++) {
+                const nextIndex = (i + 1) % points.length;
+                const dx = points[nextIndex].x - points[i].x;
+                const dy = points[nextIndex].y - points[i].y;
+                const length = Math.sqrt(dx * dx + dy * dy) / 10; // в метрах
+                lengths.push(length.toFixed(1));
+            }
+            
+            return lengths;
+        }
 
         function finalizePolygon() {
             if (!drawingPath || drawingPath.length < 3) return;
@@ -3579,18 +3670,6 @@
             );
             tempElements.forEach(element => canvas.remove(element));
             
-            // Создаём замкнутую линию от последней точки к первой
-            const lastPoint = drawingPath[drawingPath.length - 1];
-            const firstPoint = drawingPath[0];
-            const closingLine = new fabric.Line([lastPoint.x, lastPoint.y, firstPoint.x, firstPoint.y], {
-                stroke: '#0984e3',
-                strokeWidth: 2,
-                strokeDashArray: [6, 4],
-                selectable: false,
-                data: { type: 'polygon-line' }
-            });
-            canvas.add(closingLine);
-            
             // Создаём полигон как fabric.Polygon для расчёта площади
             const polygonPoints = drawingPath.map(p => ({ x: p.x, y: p.y }));
             const area = calculatePolygonArea(polygonPoints);
@@ -3599,25 +3678,29 @@
             
             console.log('Создаём полигон с размерами:', dimensions, 'площадь:', area, 'угол:', angle);
             
+            // Создаём полигон в стиле IrriSketch
             const polygon = new fabric.Polygon(polygonPoints, {
-              fill: 'rgba(9, 132, 227, 0.2)',
-              stroke: '#0984e3',
-              strokeWidth: 2,
-                selectable: true, // Make it selectable for editing
-              data: {
-                type: 'polygon-boundary',
+                fill: 'rgba(34, 139, 34, 0.2)', // Светло-зеленый с прозрачностью
+                stroke: '#228B22', // Темно-зеленый
+                strokeWidth: 2,
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                lockRotation: false,
+                lockScaling: false,
+                lockMovementX: false,
+                lockMovementY: false,
+                data: {
+                    type: 'polygon-boundary',
                     area: area,
                     width: dimensions.width,
                     height: dimensions.height,
-                    angle: angle
+                    angle: angle,
+                    points: polygonPoints,
+                    lengths: calculatePolygonLengths(polygonPoints)
                 }
             });
-            
-            // Удаляем все линии полигона (including the closing line)
-            const polygonLines = canvas.getObjects().filter(obj =>
-                obj.data && obj.data.type === 'polygon-line'
-            );
-            polygonLines.forEach(line => canvas.remove(line));
             
             // Добавляем полигон
             canvas.add(polygon);
@@ -3630,6 +3713,9 @@
             // Сбрасываем состояние рисования
             drawingPath = [];
             canvas.renderAll();
+            
+            // Обновляем статистику
+            updateStatistics();
         }
     </script>
 </body>
