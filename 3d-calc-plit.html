@@ -1282,9 +1282,12 @@
                 let centerX, centerY;
                 
                 if (canvas.lastMouseEvent) {
-                    const pointer = canvas.getPointer(canvas.lastMouseEvent);
-                    centerX = pointer.x;
-                    centerY = pointer.y;
+                    // Используем координаты экрана для более точного позиционирования
+                    const mouseX = canvas.lastMouseEvent.clientX;
+                    const mouseY = canvas.lastMouseEvent.clientY;
+                    const canvasRect = canvas.wrapperEl.getBoundingClientRect();
+                    centerX = mouseX - canvasRect.left;
+                    centerY = mouseY - canvasRect.top;
                 } else {
                     centerX = canvas.getWidth() / 2;
                     centerY = canvas.getHeight() / 2;
@@ -1314,9 +1317,12 @@
                 let centerX, centerY;
                 
                 if (canvas.lastMouseEvent) {
-                    const pointer = canvas.getPointer(canvas.lastMouseEvent);
-                    centerX = pointer.x;
-                    centerY = pointer.y;
+                    // Используем координаты экрана для более точного позиционирования
+                    const mouseX = canvas.lastMouseEvent.clientX;
+                    const mouseY = canvas.lastMouseEvent.clientY;
+                    const canvasRect = canvas.wrapperEl.getBoundingClientRect();
+                    centerX = mouseX - canvasRect.left;
+                    centerY = mouseY - canvasRect.top;
                 } else {
                     centerX = canvas.getWidth() / 2;
                     centerY = canvas.getHeight() / 2;
@@ -1346,12 +1352,17 @@
             // Сохраняем позицию курсора при сбросе масштаба
             const vpt = canvas.viewportTransform;
             if (canvas.lastMouseEvent) {
-                const pointer = canvas.getPointer(canvas.lastMouseEvent);
+                // Используем координаты экрана для более точного позиционирования
+                const mouseX = canvas.lastMouseEvent.clientX;
+                const mouseY = canvas.lastMouseEvent.clientY;
+                const canvasRect = canvas.wrapperEl.getBoundingClientRect();
+                const centerX = mouseX - canvasRect.left;
+                const centerY = mouseY - canvasRect.top;
                 const zoomRatio = currentZoom / oldZoom;
                 
                 // Вычисляем новую позицию viewport для сохранения позиции курсора
-                const newVpt4 = pointer.x - (pointer.x - vpt[4]) * zoomRatio;
-                const newVpt5 = pointer.y - (pointer.y - vpt[5]) * zoomRatio;
+                const newVpt4 = centerX - (centerX - vpt[4]) * zoomRatio;
+                const newVpt5 = centerY - (centerY - vpt[5]) * zoomRatio;
                 
                 vpt[4] = newVpt4;
                 vpt[5] = newVpt5;
@@ -1938,7 +1949,11 @@
                 // Отключаем рендеринг во время масштабирования для производительности
                 canvas.renderOnAddRemove = false;
                 
-                // Получаем позицию курсора относительно canvas
+                // Получаем позицию курсора в координатах экрана
+                const mouseX = e.e.clientX;
+                const mouseY = e.e.clientY;
+                
+                // Получаем позицию курсора в мировых координатах canvas
                 const pointer = canvas.getPointer(e.e);
                 
                 // Устанавливаем новый масштаб
@@ -1949,10 +1964,14 @@
                 const vpt = canvas.viewportTransform;
                 
                 // Вычисляем новую позицию viewport для сохранения позиции курсора
-                // pointer.x и pointer.y - это позиция курсора в мировых координатах
-                // vpt[4] и vpt[5] - это смещение viewport
-                const newVpt4 = pointer.x - (pointer.x - vpt[4]) * zoomRatio;
-                const newVpt5 = pointer.y - (pointer.y - vpt[5]) * zoomRatio;
+                // Используем координаты экрана для более точного позиционирования
+                const canvasRect = canvas.wrapperEl.getBoundingClientRect();
+                const canvasMouseX = mouseX - canvasRect.left;
+                const canvasMouseY = mouseY - canvasRect.top;
+                
+                // Вычисляем новое смещение viewport
+                const newVpt4 = canvasMouseX - (canvasMouseX - vpt[4]) * zoomRatio;
+                const newVpt5 = canvasMouseY - (canvasMouseY - vpt[5]) * zoomRatio;
                 
                 // Применяем новую позицию viewport
                 vpt[4] = newVpt4;
@@ -3214,12 +3233,17 @@
                 // Центрируем viewport на курсоре, если он есть
                 const vpt = canvas.viewportTransform;
                 if (canvas.lastMouseEvent) {
-                    const pointer = canvas.getPointer(canvas.lastMouseEvent);
+                    // Используем координаты экрана для более точного позиционирования
+                    const mouseX = canvas.lastMouseEvent.clientX;
+                    const mouseY = canvas.lastMouseEvent.clientY;
+                    const canvasRect = canvas.wrapperEl.getBoundingClientRect();
+                    const centerX = mouseX - canvasRect.left;
+                    const centerY = mouseY - canvasRect.top;
                     const zoomRatio = currentZoom / oldZoom;
                     
                     // Вычисляем новую позицию viewport для центрирования на курсоре
-                    const newVpt4 = pointer.x - (pointer.x - vpt[4]) * zoomRatio;
-                    const newVpt5 = pointer.y - (pointer.y - vpt[5]) * zoomRatio;
+                    const newVpt4 = centerX - (centerX - vpt[4]) * zoomRatio;
+                    const newVpt5 = centerY - (centerY - vpt[5]) * zoomRatio;
                     
                     vpt[4] = newVpt4;
                     vpt[5] = newVpt5;
