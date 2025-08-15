@@ -1172,7 +1172,9 @@
                         bottom: Math.max(...ys),
                         rotated: false,
                         polygon: true,
-                        points: coords
+                        points: coords,
+                        center: boundary.getCenterPoint(),
+                        angle: boundary.angle || 0
                     };
                 }
             }
@@ -1183,13 +1185,21 @@
             if (!boundaryBounds) return false;
             
             if (boundaryBounds.polygon) {
-                // Для полигона проверяем, находится ли центр плитки внутри полигона
-                const tileCenter = {
-                    x: tile.left + tile.width / 2,
-                    y: tile.top + tile.height / 2
-                };
+                // Для полигона проверяем, что все углы плитки находятся внутри полигона
+                const tileCorners = [
+                    { x: tile.left, y: tile.top },
+                    { x: tile.left + tile.width, y: tile.top },
+                    { x: tile.left + tile.width, y: tile.top + tile.height },
+                    { x: tile.left, y: tile.top + tile.height }
+                ];
                 
-                return isPointInPolygon(tileCenter, boundaryBounds.points);
+                // Проверяем, что все углы плитки находятся внутри полигона
+                for (let corner of tileCorners) {
+                    if (!isPointInPolygon(corner, boundaryBounds.points)) {
+                        return false;
+                    }
+                }
+                return true;
             } else if (!boundaryBounds.rotated) {
                 const tileLeft = tile.left;
                 const tileTop = tile.top;
@@ -2147,6 +2157,13 @@
                 return;
             }
             
+            // Дополнительная проверка для полигонов - убеждаемся, что у нас есть точки
+            if (bounds.polygon && (!bounds.points || bounds.points.length < 3)) {
+                console.warn('Полигон не имеет достаточно точек для заполнения');
+                callback();
+                return;
+            }
+            
             // Инициализируем сетку при первом вызове
             if (tileCount === 0) {
                 boundary.grid = {};
@@ -2164,9 +2181,9 @@
             // Функция для проверки, свободно ли место
             function isSpaceFree(x, y, width, height) {
                 if (bounds.polygon) {
-                    // Для полигонов используем более точную проверку сетки
-                    for (let i = x; i < x + width; i += 0.5) {
-                        for (let j = y; j < y + height; j += 0.5) {
+                    // Для полигонов используем стандартную проверку сетки
+                    for (let i = x; i < x + width; i += 1.1) {
+                        for (let j = y; j < y + height; j += 1.1) {
                             if (grid[`${Math.round(i)},${Math.round(j)}`]) return false;
                         }
                     }
@@ -2201,9 +2218,9 @@
             // Функция для отметки места как занятого
             function markSpaceOccupied(x, y, width, height) {
                 if (bounds.polygon) {
-                    // Для полигонов используем более точную сетку
-                    for (let i = x; i < x + width; i += 0.5) {
-                        for (let j = y; j < y + height; j += 0.5) {
+                    // Для полигонов используем стандартную сетку
+                    for (let i = x; i < x + width; i += 1.1) {
+                        for (let j = y; j < y + height; j += 1.1) {
                             grid[`${Math.round(i)},${Math.round(j)}`] = true;
                         }
                     }
@@ -2228,7 +2245,7 @@
             function findPosition(width, height) {
                 if (bounds.polygon) {
                     // Для полигона проверяем каждую возможную позицию в текущих координатах
-                    const step = 0.5; // Меньший шаг для более точного заполнения
+                    const step = 1.1; // Используем стандартный шаг сетки
                     
                     // Используем текущие границы полигона
                     for (let y = bounds.top; y <= bounds.bottom - height; y += step) {
@@ -2254,6 +2271,9 @@
                             }
                         }
                     }
+                    
+                    // Если не нашли место, возвращаем null
+                    return null;
                 } else if (bounds.rotated) {
                     // Для повернутого участка используем сетку, ориентированную по углу наклона
                     const step = 1.1; // Шаг сетки
@@ -2292,13 +2312,29 @@
             }
             
             // Размещаем несколько плиток за раз (для ускорения)
-            const tilesPerBatch = 5;
+            const tilesPerBatch = bounds.polygon ? 3 : 5; // Меньше плиток за раз для полигонов
             let placedTiles = 0;
             let attempts = 0;
-            const maxAttempts = 100; // Увеличиваем количество попыток
+            const maxAttempts = bounds.polygon ? 50 : 100; // Меньше попыток для полигонов
+            
+            // Логирование для отладки полигонов
+            if (bounds.polygon) {
+                console.log('Заполнение полигона:', {
+                    bounds: bounds,
+                    tileCount: tileCount,
+                    maxAttempts: maxAttempts,
+                    tilesPerBatch: tilesPerBatch
+                });
+            }
             
             while (placedTiles < tilesPerBatch && attempts < maxAttempts) {
                 attempts++;
+                
+                // Дополнительная проверка для предотвращения зависания
+                if (bounds.polygon && attempts > 20 && placedTiles === 0) {
+                    console.warn('Не удалось разместить плитки в полигоне после 20 попыток, завершаем');
+                    break;
+                }
                 
                 // Выбираем размер плитки с приоритетом на большие
                 let tileType;
@@ -2338,18 +2374,7 @@
                         // Создаем повернутую плитку
                         tile = createRotatedTile(position, finalWidth, finalHeight, tileType, bounds);
                     } else if (bounds.polygon) {
-                        // Для полигона создаем плитку с учетом угла наклона полигона
-                        // Используем угол из данных полигона или пересчитываем его
-                        let polygonAngle = 0;
-                        
-                        // Используем текущий boundary для получения угла
-                        if (boundary && boundary.data && boundary.data.angle !== undefined) {
-                            polygonAngle = boundary.data.angle;
-                        } else {
-                            // Если угол не сохранен, пересчитываем его из мировых координат
-                            polygonAngle = calculatePolygonAngle(bounds.points);
-                        }
-                        
+                        // Для полигона создаем обычную плитку без поворота
                         const gradient = new fabric.Gradient({
                             type: 'linear',
                             coords: {
@@ -2373,7 +2398,6 @@
                             stroke: '#d2b48c',
                             strokeWidth: 0.05,
                             selectable: false,
-                            angle: polygonAngle,
                             data: { 
                                 type: 'tile',
                                 tileType: tileType,
@@ -2433,13 +2457,13 @@
             updateResults();
             
             // Проверяем, нужно ли продолжить
-            if (placedTiles > 0 && tileIndex < 1000) {
+            if (placedTiles > 0 && tileIndex < 500) { // Уменьшаем лимит для полигонов
                 // Продолжаем заполнение
                 setTimeout(() => {
                     fillBoundaryGradually(boundary, tileCount + placedTiles, callback);
                 }, 10); // Быстрое обновление
             } else {
-                // Заполняем оставшиеся 10% маленькими плитками
+                // Заполняем оставшуюся область маленькими плитками
                 fillRemainingArea();
                 callback();
             }
@@ -2481,6 +2505,58 @@
                                 
                                 if (!isOccupied) {
                                     const tile = createRotatedTile({ x: worldX - step/2, y: worldY - step/2 }, step, step, 'small', bounds);
+                                    canvas.add(tile);
+                                }
+                            }
+                        }
+                    }
+                } else if (bounds.polygon) {
+                    // Для полигона заполняем оставшуюся область маленькими плитками
+                    const step = 1.1;
+                    
+                    for (let y = bounds.top; y <= bounds.bottom - step; y += step) {
+                        for (let x = bounds.left; x <= bounds.right - step; x += step) {
+                            // Проверяем, что центр плитки находится внутри полигона
+                            const tileCenter = { x: x + step/2, y: y + step/2 };
+                            
+                            if (isPointInPolygon(tileCenter, bounds.points)) {
+                                // Проверяем, не занято ли место
+                                let isOccupied = false;
+                                canvas.getObjects().forEach(obj => {
+                                    if (obj.data && obj.data.type === 'tile') {
+                                        if (x < obj.left + obj.width && x + step > obj.left &&
+                                            y < obj.top + obj.height && y + step > obj.top) {
+                                            isOccupied = true;
+                                        }
+                                    }
+                                });
+                                
+                                if (!isOccupied) {
+                                    const gradient = new fabric.Gradient({
+                                        type: 'linear',
+                                        coords: { x1: 0, y1: 0, x2: step, y2: step },
+                                        colorStops: [
+                                            { offset: 0, color: '#ffffff' },
+                                            { offset: 1, color: '#cccccc' }
+                                        ]
+                                    });
+                                    
+                                    const tile = new fabric.Rect({
+                                        left: x,
+                                        top: y,
+                                        width: step,
+                                        height: step,
+                                        fill: gradient,
+                                        stroke: '#d2b48c',
+                                        strokeWidth: 0.05,
+                                        selectable: false,
+                                        data: { 
+                                            type: 'tile',
+                                            tileType: 'small',
+                                            orientation: 'square'
+                                        }
+                                    });
+                                    
                                     canvas.add(tile);
                                 }
                             }
@@ -2789,7 +2865,7 @@
                 
                 // Обновляем меню и показываем его если скрыто
                 if (e.target.data.type === 'boundary') {
-                updateSizeMenu(e.target);
+                    updateSizeMenu(e.target);
                 } else if (e.target.data.type === 'polygon-boundary') {
                     // Для полигона пересчитываем площадь и размеры при изменении
                     const points = e.target.points || e.target._points;
@@ -2829,7 +2905,7 @@
                 // Устанавливаем площадку как активную
                 currentEditingBoundary = e.target;
                 if (e.target.data.type === 'boundary') {
-                updateSizeMenu(e.target);
+                    updateSizeMenu(e.target);
                 } else if (e.target.data.type === 'polygon-boundary') {
                     // Для полигона пересчитываем площадь и размеры при перемещении
                     const points = e.target.points || e.target._points;
@@ -2857,7 +2933,7 @@
                 // Устанавливаем площадку как активную
                 currentEditingBoundary = e.target;
                 if (e.target.data.type === 'boundary') {
-                updateSizeMenu(e.target);
+                    updateSizeMenu(e.target);
                 } else if (e.target.data.type === 'polygon-boundary') {
                     // Для полигона пересчитываем площадь и размеры при масштабировании
                     const points = e.target.points || e.target._points;
